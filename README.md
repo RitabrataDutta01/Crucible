@@ -83,6 +83,15 @@ crucible/
 └── pyproject.toml      # Dependency and project metadata
 ```
 
+## Ongoing Development
+
+The following modules are currently in development as part of the Crucible expansion roadmap:
+
+* **Cross-Site Scripting (XSS) Module**: Detection of reflected and DOM-based XSS using automated payload reflection analysis.
+* **Local File Inclusion (LFI) Engine**: Auditing URL parameters for directory traversal and sensitive file access.
+* **Header Security Auditor**: Analysis of HTTP response headers for security misconfigurations (CSP, HSTS, X-Frame-Options).
+* **Machine Learning Integration**: Implementation of Naive Bayes classifiers to improve detection accuracy and reduce false positives in vulnerability reports.
+
 ### Disclaimer
 
 Crucible is intended for educational purposes and authorized penetration testing only. Unauthorized use of this tool against systems without explicit permission is illegal. The developer assumes no liability for misuse.
