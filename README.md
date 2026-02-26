@@ -80,6 +80,7 @@ crucible/
 ├── static/             # Frontend assets (CSS and JavaScript)
 ├── templates/          # Jinja2 HTML templates
 ├── data/               # Security payloads and JSON data
+└── reports             # Log Files of all scans              
 └── pyproject.toml      # Dependency and project metadata
 ```
 
