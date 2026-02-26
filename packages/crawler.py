@@ -123,4 +123,3 @@ def crawl(start_url, max_depth=20):
     crawl_data["discovered_endpoints"] = list(crawl_data["discovered_endpoints"])
 
     return crawl_data
-

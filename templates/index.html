@@ -12,7 +12,7 @@
             <h1 onclick="window.location.href='/'">CRUCIBLE <span>Scanner</span></h1>
         </header>
 
-        {% if not results and not scanning %}
+        {% if results is none and not scanning %}
         <section class="view greet-view">
             <div class="hero">
                 <h2>Secure your database.</h2>
@@ -20,7 +20,7 @@
             </div>
             <form action="/scan" method="POST" onsubmit="showLoading()">
                 <div class="search-box">
-                    <input type="url" name="target_url" placeholder="https://demo.testfire.net" required>
+                    <input type="url" name="target_url" placeholder="https://example.com" required>
                     <button type="submit">Initialize Scan</button>
                 </div>
             </form>
@@ -37,31 +37,52 @@
         <section class="view results-view">
             <div class="results-header">
                 <h3>Vulnerability Report</h3>
-                <span class="count">{{ results|length }} Issues Found</span>
+                <span class="count {% if results|length > 0 %}danger{% endif %}">
+                    {{ results|length }} Issues Found
+                </span>
             </div>
 
+            {% if results|length > 0 %}
             <table class="results-table">
                 <thead>
                     <tr>
-                        <th>Endpoint</th>
-                        <th>Payload</th>
-                        <th>Status</th>
+                        <th>Vulnerability</th>
+                        <th>Endpoint / Payload</th>
+                        <th>Severity</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for page in results %}
+                    {% for hit in results %}
                     <tr>
-                        <td><small>{{ page.url }}</small><br><strong>{{ page.action }}</strong></td>
-                        <td class="payload"><code>{{ page.load }}</code></td>
-                        <td><span class="badge">{{ page.response }}</span></td>
-                        <td><button class="copy-btn" onclick="copyPayload('{{ page.load }}', this)">Copy</button></td>
+                        <td>
+                            <strong>{{ hit['vulnerability type'] }}</strong><br>
+                            <small style="color: #8b949e;">{{ hit.evidence }}</small>
+                        </td>
+                        <td class="payload">
+                            <small style="color: var(--accent);">{{ hit.url }}</small><br>
+                            <code>{{ hit.payload }}</code>
+                        </td>
+                        <td><span class="badge {{ hit.severity|lower }}">{{ hit.severity }}</span></td>
+                        <td>
+                            <button class="copy-btn" onclick="copyPayload('{{ hit.payload }}', this)">
+                                Copy
+                            </button>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            {% else %}
+            <div class="no-results" style="text-align: center; margin-top: 10vh;">
+                <h2>No vulnerabilities detected.</h2>
+                <p>Target appears secure against the performed SQLi tests.</p>
+            </div>
+            {% endif %}
+
             <div class="footer-actions">
                 <a href="/" class="btn-secondary">New Scan</a>
+                <a href="/history" class="btn-text" style="margin-left: 15px; color: var(--accent); text-decoration: none;">View Scan History</a>
             </div>
         </section>
         {% endif %}

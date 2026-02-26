@@ -1,8 +1,5 @@
-import json
-
-import requests
-from urllib.parse import urljoin
-import time
+import json, requests, os
+from datetime import datetime
 
 def looks_Real_Endpoint(form):
 
@@ -101,75 +98,135 @@ def set_baselines(forms):
 
     return candidates
 
-def injector(forms):
-    candidates = set_baselines(forms)
-    #print(candidates)
+
+def prepare_Input_Data(candidate, load):
+
+    data = {}
+    for cd in candidate['inputs']:
+
+        input_name = cd.get('name')
+        if not input_name:
+            continue
+
+        text_types = ['text', 'password', 'email', 'search', 'number', 'textarea']
+
+        if cd.get('type') in text_types:
+            data[input_name] = load
+        else:
+            data[input_name] = cd.get('value')
+
+    return data
+
+def send_Request(action, method, data):
+    try:
+        if method == 'post':
+            return requests.post(action, data=data, timeout=30)
+        return requests.get(action, params=data, timeout=30)
+    except requests.exceptions.RequestException:
+        return None
+
+def check_Auth_Bypass(candidate):
 
     with open('data\payloads.json', 'r') as f:
         payload = json.load(f)
 
-    arsenal = payload['auth_bypass'] + payload['error_triggering']
-    #print(arsenal)
+    arsenal = payload['auth_bypass']
+    findings=[]
+
+    for load in arsenal:
+
+        data = prepare_Input_Data(candidate, load)
+        response = send_Request(candidate['action'] , candidate['method'], data)
+
+        if response.status_code == 200 and len(response.text) > candidate['response_length_baseline']:
+            finding = {
+                'url' : candidate['found on'],
+                'vulnerability type': 'Auth Bypass SQLI',
+                'payload': load,
+                'severity': 'Critical',
+                'evidence': f"Auth bypass successful on {candidate.get('action', 'target')} using payload: {load}"
+            }
+
+            findings.append(finding)
+    return findings
+
+def check_Error_Based(candidate):
+
+    with open('data\payloads.json', 'r') as f:
+        payload = json.load(f)
+
+    with open('data\errorSignature.json', 'r') as fn:
+        errorSignature = json.load(fn)
+
+    arsenal = payload['error_triggering']
+
+    findings = []
+    unique_hits = {}
+    for load in arsenal:
+
+        data = prepare_Input_Data(candidate, load)
+        response = send_Request(candidate['action'] , candidate['method'], data)
+
+        if any(error.lower() in response.text.lower() for error in errorSignature):
+            if candidate['found on'] not in unique_hits:
+                unique_hits[candidate['found on']] = 1
+                finding = {
+                    'url' : candidate['found on'],
+                    'vulnerability type': 'Error Based SQLI',
+                    'payload': load,
+                    'severity': 'Critical',
+                    'evidence': f"Server error by {candidate['found on']}"
+                }
+                findings.append(finding)
+
+    return findings
+
+def check_time_Based(candidate):
+
+    with open('data\payloads.json', 'r') as f:
+        payload = json.load(f)
+
+    arsenal = payload['time_based']
+    findings = []
+
+    for load in arsenal:
+
+        data = prepare_Input_Data(candidate, load['payload'])
+        response = send_Request(candidate['action'] , candidate['method'], data)
+        duration = response.elapsed.total_seconds()
+        if duration >= load['delay']:
+
+            finding = {
+                'url' : candidate['found on'],
+                'vulnerability type': 'Time Based SQLI',
+                'payload': load['payload'],
+                'severity': 'Critical',
+                'evidence': f"Server delayed by {duration}s"
+            }
+            findings.append(finding)
+
+    return findings
+
+def injector(forms):
+    candidates = set_baselines(forms)
 
     vulnerable_pages = []
 
     for candidate in candidates:
 
-        for load in arsenal:
+        vulnerable_pages.extend(check_Auth_Bypass(candidate))
+        vulnerable_pages.extend(check_Error_Based(candidate))
+        vulnerable_pages.extend(check_time_Based(candidate))
 
-            vulnerable_page = {}
+    if vulnerable_pages:
+        if not os.path.exists('reports'):
+            os.makedirs('reports')
 
-            method = candidate['method']
-            data = {}
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_filename = f"reports/scan_report_{timestamp}.json"
 
-            if method == 'post':
+        with open(log_filename, 'w') as log_file:
+            json.dump(vulnerable_pages, log_file, indent=4)
 
-                action = candidate['action']
-
-                for cd in candidate['inputs']:
-
-                    input_name = cd.get('name')
-                    if not input_name:
-                        continue
-
-                    if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
-
-                        data[input_name] = load
-
-                    else:
-                        data[input_name] = cd.get('value')
-
-                response = requests.post(action, data=data)
-                if response.status_code == 200 and len(response.text) != candidate['response_length_baseline']:
-                    vulnerable_page['load'] = load
-                    vulnerable_page['action'] = action
-                    vulnerable_page['url'] = candidate['found on']
-                    vulnerable_page['response'] = response.status_code
-                    vulnerable_pages.append(vulnerable_page)
-
-            elif method == 'get':
-
-                action = candidate['action']
-
-                for cd in candidate['inputs']:
-
-                    input_name = cd.get('name')
-                    if not input_name:
-                        continue
-
-                    if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
-
-                        data[input_name] = load
-
-                    else:
-                        data[input_name] = cd.get('value')
-
-                response = requests.get(action, params=data)
-                if response.status_code == 200 and len(response.text) != candidate['response_length_baseline']:
-                    vulnerable_page['load'] = load
-                    vulnerable_page['action'] = action
-                    vulnerable_page['url'] = candidate['found on']
-                    vulnerable_page['response'] = response.status_code
-                    vulnerable_pages.append(vulnerable_page)
 
     return vulnerable_pages

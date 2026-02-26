@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crucible | Scan History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 onclick="window.location.href='/'">CRUCIBLE <span>Scanner</span></h1>
+        </header>
+
+        <section class="view history-view">
+            <div class="results-header">
+                <h2>Saved Reports</h2>
+                <a href="/" class="btn-primary" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">New Scan</a>
+            </div>
+
+            {% if reports %}
+            <div class="history-grid">
+                {% for report in reports %}
+                <div class="history-item">
+                    <div class="report-info">
+                        <span class="file-icon">📄</span>
+                        <div class="report-meta">
+                            <strong>{{ report }}</strong>
+                            <small>JSON Log File</small>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('view_report', filename=report) }}" class="btn-text">View Findings →</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-results" style="text-align: center; margin-top: 10vh;">
+                <h2>No History Found</h2>
+                <p>Initialize your first scan to generate a report.</p>
+            </div>
+            {% endif %}
+
+            <div class="footer-actions">
+                <a href="/" class="btn-secondary">Back to Dashboard</a>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

