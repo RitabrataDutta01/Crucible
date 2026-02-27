@@ -4,11 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="060386ad-9800-467a-93ba-01c57379e161" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/forge.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/packages/sqli.py" beforeDir="false" afterPath="$PROJECT_DIR$/packages/sqli.py" afterDir="false" />
-    </list>
+    <list default="true" id="060386ad-9800-467a-93ba-01c57379e161" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -107,7 +103,7 @@
       <workItem from="1772006619591" duration="70000" />
       <workItem from="1772008977277" duration="1908000" />
       <workItem from="1772111575168" duration="6431000" />
-      <workItem from="1772172536592" duration="5167000" />
+      <workItem from="1772172536592" duration="5828000" />
     </task>
     <servers />
   </component>
