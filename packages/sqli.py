@@ -1,4 +1,4 @@
-import json, requests, os
+import json, requests, os, time
 from datetime import datetime
 
 def looks_Real_Endpoint(form):
@@ -23,8 +23,6 @@ def isActionable(params):
             return True
 
     return False
-
-
 
 def sqli_scanner(forms):
 
@@ -73,9 +71,13 @@ def set_baselines(forms):
                 else:
                     safe_data[input_name] = cd.get('value')
 
-            response = requests.post(action, data=safe_data)
-            candidate['response_length_baseline'] = len(response.text)
-            candidate['response_code_baseline'] = response.status_code
+            response = send_Request(action, 'post', safe_data)
+            if response is not None:
+                candidate['response_length_baseline'] = len(response.text)
+                candidate['response_code_baseline'] = response.status_code
+            else:
+                candidate['response_length_baseline'] = 0
+                candidate['response_code_baseline'] = 0
 
         elif method == 'get':
 
@@ -92,9 +94,14 @@ def set_baselines(forms):
                 else:
                     safe_data[input_name] = cd.get('value')
 
-            response = requests.get(action, params=safe_data)
-            candidate['response_length_baseline'] = len(response.text)
-            candidate['response_code_baseline'] = response.status_code
+            response = send_Request(action, 'get', safe_data)
+
+            if response is not None:
+                candidate['response_length_baseline'] = len(response.text)
+                candidate['response_code_baseline'] = response.status_code
+            else:
+                candidate['response_length_baseline'] = 0
+                candidate['response_code_baseline'] = 0
 
     return candidates
 
@@ -118,7 +125,9 @@ def prepare_Input_Data(candidate, load):
     return data
 
 def send_Request(action, method, data):
+
     try:
+        #time.sleep(5)
         if method == 'post':
             return requests.post(action, data=data, timeout=30)
         return requests.get(action, params=data, timeout=30)
@@ -127,7 +136,7 @@ def send_Request(action, method, data):
 
 def check_Auth_Bypass(candidate):
 
-    with open('data\payloads.json', 'r') as f:
+    with open('data/payloads.json', 'r') as f:
         payload = json.load(f)
 
     arsenal = payload['auth_bypass']
@@ -137,6 +146,9 @@ def check_Auth_Bypass(candidate):
 
         data = prepare_Input_Data(candidate, load)
         response = send_Request(candidate['action'] , candidate['method'], data)
+
+        if response is None:
+            continue
 
         if response.status_code == 200 and len(response.text) > candidate['response_length_baseline']:
             finding = {
@@ -148,17 +160,18 @@ def check_Auth_Bypass(candidate):
             }
 
             findings.append(finding)
+            break
     return findings
 
 def check_Error_Based(candidate):
 
-    with open('data\payloads.json', 'r') as f:
-        payload = json.load(f)
+    with open('data/fuzzdb_sqli_arsenal.json', 'r') as f:
+        fuzzdb_data = json.load(f)
 
-    with open('data\errorSignature.json', 'r') as fn:
+    with open('data/errorSignature.json', 'r') as fn:
         errorSignature = json.load(fn)
 
-    arsenal = payload['error_triggering']
+    arsenal = [item['payload'] for item in fuzzdb_data]
 
     findings = []
     unique_hits = {}
@@ -166,6 +179,9 @@ def check_Error_Based(candidate):
 
         data = prepare_Input_Data(candidate, load)
         response = send_Request(candidate['action'] , candidate['method'], data)
+
+        if response is None:
+            continue
 
         if any(error.lower() in response.text.lower() for error in errorSignature):
             if candidate['found on'] not in unique_hits:
@@ -178,12 +194,13 @@ def check_Error_Based(candidate):
                     'evidence': f"Server error by {candidate['found on']}"
                 }
                 findings.append(finding)
+                break
 
     return findings
 
 def check_time_Based(candidate):
 
-    with open('data\payloads.json', 'r') as f:
+    with open('data/payloads.json', 'r') as f:
         payload = json.load(f)
 
     arsenal = payload['time_based']
@@ -193,6 +210,9 @@ def check_time_Based(candidate):
 
         data = prepare_Input_Data(candidate, load['payload'])
         response = send_Request(candidate['action'] , candidate['method'], data)
+
+        if response is None:
+            continue
         duration = response.elapsed.total_seconds()
         if duration >= load['delay']:
 
