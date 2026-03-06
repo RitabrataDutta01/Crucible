@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crucible | SQLi Scanner</title>
+    <title>Crucible | Deep Scan Audit</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -15,13 +15,13 @@
         {% if results is none and not scanning %}
         <section class="view greet-view">
             <div class="hero">
-                <h2>Secure your database.</h2>
-                <p>Enter a URL to begin an automated SQL injection vulnerability audit.</p>
+                <h2>Deep Scan Audit</h2>
+                <p>Sequential SQL Injection & Cross-Site Scripting (XSS) vulnerability analysis.</p>
             </div>
-            <form action="/scan" method="POST" onsubmit="showLoading()">
+            <form action="/deep_scan" method="POST" onsubmit="showLoading()">
                 <div class="search-box">
                     <input type="url" name="target_url" placeholder="https://example.com" required>
-                    <button type="submit">Initialize Scan</button>
+                    <button type="submit">Initialize Deep Scan</button>
                 </div>
             </form>
         </section>
@@ -29,8 +29,10 @@
         {% elif scanning %}
         <section class="view loading-view">
             <div class="spinner"></div>
-            <h3>Audit in Progress...</h3>
-            <p>Crucible is mapping forms and injecting payloads. This usually takes 45-60 seconds.</p>
+            <h3 id="scan-status">Deep Audit in Progress...</h3>
+            <p>Phase 1: SQL Injection Analysis <br> 
+               Phase 2: Reflected XSS Detection</p>
+            <small style="color: #8b949e;">Analyzing forms and payloads. Do not refresh.</small>
         </section>
 
         {% else %}
@@ -56,14 +58,16 @@
                     {% for hit in results %}
                     <tr>
                         <td>
-                            <strong>{{ hit['vulnerability type'] }}</strong><br>
-                            <small style="color: #8b949e;">{{ hit.evidence }}</small>
+                            <strong>{{ hit['vulnerability type'] or hit['type'] }}</strong><br>
+                            <small style="color: #8b949e;">{{ hit.evidence or hit.description or 'No evidence logged' }}</small>
                         </td>
                         <td class="payload">
                             <small style="color: var(--accent);">{{ hit.url }}</small><br>
                             <code>{{ hit.payload }}</code>
                         </td>
-                        <td><span class="badge {{ hit.severity|lower }}">{{ hit.severity }}</span></td>
+                        <td><span class="badge {{ hit.severity|lower if hit.severity else 'high' }}">
+                            {{ hit.severity or 'High' }}
+                        </span></td>
                         <td>
                             <button class="copy-btn" onclick="copyPayload('{{ hit.payload }}', this)">
                                 Copy
@@ -75,14 +79,14 @@
             </table>
             {% else %}
             <div class="no-results" style="text-align: center; margin-top: 10vh;">
-                <h2>No vulnerabilities detected.</h2>
-                <p>Target appears secure against the performed SQLi tests.</p>
+                <h2>System Secure.</h2>
+                <p>No SQLi or XSS vulnerabilities detected in current scan depth.</p>
             </div>
             {% endif %}
 
             <div class="footer-actions">
                 <a href="/" class="btn-secondary">New Scan</a>
-                <a href="/history" class="btn-text" style="margin-left: 15px; color: var(--accent); text-decoration: none;">View Scan History</a>
+                <a href="/history" class="btn-text" style="margin-left: 15px; color: var(--accent); text-decoration: none;">History</a>
             </div>
         </section>
         {% endif %}

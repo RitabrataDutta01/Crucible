@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crucible | Scan History</title>
+    <title>Crucible | Audit History</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -14,8 +14,8 @@
 
         <section class="view history-view">
             <div class="results-header">
-                <h2>Saved Reports</h2>
-                <a href="/" class="btn-primary" style="text-decoration: none; display: flex; align-items: center; justify-content: center;">New Scan</a>
+                <h2>Audit Archives</h2>
+                <a href="/" class="btn-primary" style="text-decoration: none;">New Deep Scan</a>
             </div>
 
             {% if reports %}
@@ -23,25 +23,29 @@
                 {% for report in reports %}
                 <div class="history-item">
                     <div class="report-info">
-                        <span class="file-icon">📄</span>
+                        <span class="file-icon" style="color: var(--accent);">✔</span>
                         <div class="report-meta">
-                            <strong>{{ report }}</strong>
-                            <small>JSON Log File</small>
+                            <strong>Audit: {{ report.split('_')[2] }}</strong>
+                            <br>
+                            <small style="color: #8b949e;">Generated: {{ report.split('_')[3].split('.')[0] }}</small>
                         </div>
                     </div>
-                    <a href="{{ url_for('view_report', filename=report) }}" class="btn-text">View Findings →</a>
+                    <div class="report-actions">
+                         <a href="{{ url_for('view_report', filename=report) }}" class="btn-text">Review Findings →</a>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
             <div class="no-results" style="text-align: center; margin-top: 10vh;">
-                <h2>No History Found</h2>
-                <p>Initialize your first scan to generate a report.</p>
+                <div class="spinner" style="border-top-color: transparent; margin-bottom: 20px;"></div>
+                <h2>No Archives Found</h2>
+                <p>Initialize a Deep Scan to generate your first vulnerability report.</p>
             </div>
             {% endif %}
 
             <div class="footer-actions">
-                <a href="/" class="btn-secondary">Back to Dashboard</a>
+                <a href="/" class="btn-secondary">Dashboard</a>
             </div>
         </section>
     </div>

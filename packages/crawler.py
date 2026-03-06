@@ -75,7 +75,7 @@ def filter_links(urls, parsed_urls, base_host):
 
     return allowed_links
 
-def crawl(start_url, max_depth=20):
+def crawl(start_url, max_depth=1):
 
     visited = set()
     queue = deque([(start_url,0)])

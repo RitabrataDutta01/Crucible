@@ -129,8 +129,8 @@ def send_Request(action, method, data):
     try:
         #time.sleep(5)
         if method == 'post':
-            return requests.post(action, data=data, timeout=30)
-        return requests.get(action, params=data, timeout=30)
+            return requests.post(action, data=data)
+        return requests.get(action, params=data)
     except requests.exceptions.RequestException:
         return None
 
@@ -143,6 +143,8 @@ def check_Auth_Bypass(candidate):
     findings=[]
 
     for load in arsenal:
+
+        print(f"  [>] Testing payload auth")
 
         data = prepare_Input_Data(candidate, load)
         response = send_Request(candidate['action'] , candidate['method'], data)
@@ -177,6 +179,8 @@ def check_Error_Based(candidate):
     unique_hits = {}
     for load in arsenal:
 
+        print(f"  [>] Testing payload error")
+
         data = prepare_Input_Data(candidate, load)
         response = send_Request(candidate['action'] , candidate['method'], data)
 
@@ -207,6 +211,7 @@ def check_time_Based(candidate):
     findings = []
 
     for load in arsenal:
+        print(f"  [>] Testing payload time")
 
         data = prepare_Input_Data(candidate, load['payload'])
         response = send_Request(candidate['action'] , candidate['method'], data)
