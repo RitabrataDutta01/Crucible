@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 from packages import crawler, sqli, XSS
-import os, json, subprocess
+import os, json, subprocess, io
 import google.generativeai as genai
-from flask import send_from_directory, after_this_request
+from flask import send_file
 app = Flask(__name__)
 REPORT_DIR = 'reports'
 
@@ -83,18 +83,21 @@ def download_report(filename):
     file_path = os.path.join(REPORT_DIR, filename)
     if not os.path.exists(file_path):
         return "Report not found", 404
+    with open(file_path, 'rb') as f:
+        file_data = f.read()
+    try:
+        os.remove(file_path)
+        print(f"\n[!] SYSTEM WIPED: {filename} deleted securely.\n")
+    except Exception as e:
+        print(f"Cleanup Error: {e}")
 
-    @after_this_request
-
-    def remove_file(response):
-        try:
-            os.remove(file_path)
-            print(f"[!] System Wiped: {filename} deleted.")
-        except Exception as e:
-            print(f"Cleanup Error: {e}")
-        return response
-
-    return send_from_directory(REPORT_DIR, filename, as_attachment=True)
+        # 3. Send the RAM copy to the browser
+    return send_file(
+        io.BytesIO(file_data),
+        mimetype='application/json',
+        as_attachment=True,
+        download_name=filename
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
