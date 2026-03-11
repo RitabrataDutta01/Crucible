@@ -1,5 +1,8 @@
-import requests, json, time, os
+import requests, json, time, os, concurrent.futures
 from datetime import datetime
+
+
+session = requests.Session()
 
 def looks_Real_Endpoint(form):
 
@@ -42,13 +45,13 @@ def prepare_Input_Data(candidate, load):
 
     return data
 
-def send_Request(action, method, data):
+def send_Request(action, method, data, session = None):
 
     try:
-        #time.sleep(5)
+        caller = session if session else requests
         if method == 'post':
-            return requests.post(action, data=data)
-        return requests.get(action, params=data)
+            return caller.post(action, data=data)
+        return caller.get(action, params=data)
     except requests.exceptions.RequestException:
         return None
     
@@ -65,7 +68,7 @@ def check_Reflected_XSS(candidate):
         print(f"  [>] Testing payload XSS")
 
         data = prepare_Input_Data(candidate, load)
-        response = send_Request(candidate['action'] , candidate['method'], data)
+        response = send_Request(candidate['action'] , candidate['method'], data, session)
 
         if response is not None:
 
@@ -89,9 +92,17 @@ def injector(forms):
 
     vulnerable_pages = []
 
-    for candidate in candidates:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
 
-        vulnerable_pages.extend(check_Reflected_XSS(candidate))
+        future_to_xss = {executor.submit(check_Reflected_XSS, c): c for c in candidates}
+
+        for future in concurrent.futures.as_completed(future_to_xss):
+            try:
+                findings = future.result()
+                if findings:
+                    vulnerable_pages.extend(findings)
+            except Exception as e:
+                print(f"[-] XSS Thread error: {e}")
 
     if vulnerable_pages:
         if not os.path.exists('reports'):

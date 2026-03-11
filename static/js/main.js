@@ -2,73 +2,107 @@
  * Crucible Interface Logic - Deep Scan Edition
  */
 
-// 1. Handle Copying Payloads with Feedback
-function copyPayload(text, buttonElement) {
-    navigator.clipboard.writeText(text).then(() => {
-        const originalText = buttonElement.innerText;
-        buttonElement.innerText = "Copied!";
-        // Use the CSS variables for consistent styling
-        buttonElement.style.borderColor = "var(--green)";
-        buttonElement.style.color = "var(--green)";
-
-        setTimeout(() => {
-            buttonElement.innerText = originalText;
-            buttonElement.style.borderColor = "var(--border)";
-            buttonElement.style.color = "var(--text)";
-        }, 1500);
-    });
+/* ── 1. Sidebar Toggle Logic ── */
+function toggleSidebar() {
+    const sb = document.getElementById('ai-sidebar');
+    sb.classList.toggle('collapsed');
 }
 
-// 2. Loading State Transition (Enhanced for Deep Scan)
-function showLoading() {
-    const greetView = document.querySelector('.greet-view');
-    const container = document.querySelector('.container');
+/* ── 2. The AI Analyst Bridge (MCP Connection) ── */
+async function fetchAiInsight() {
+    const term = document.getElementById('ai-terminal');
+    const btn = document.getElementById('ai-btn');
+    const sel = document.getElementById('ai-finding-select');
 
-    if (document.querySelector('.loading-view')) return;
+    // Get the specific finding ID selected by the user
+    const findingId = sel ? sel.value : 'all';
 
-    const loadingView = document.createElement('section');
-    loadingView.className = 'view loading-view';
-    
-    // Updated HTML to reflect the two-phase deep scan
-    loadingView.innerHTML = `
-        <div class="spinner"></div>
-        <h3>Deep Audit in Progress...</h3>
-        <p id="phase-text">Phase 1: Mapping Forms & SQLi Analysis</p>
-        <small style="color: var(--text-muted); display: block; margin-top: 10px;">
-            This usually takes 45-90 seconds. Do not refresh.
-        </small>
-    `;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="animate-pulse">Consulting Gemini...</span>';
+    term.innerHTML = '<p class="prompt">Accessing Audit Archives via MCP...</p>';
 
-    if (greetView) {
-        greetView.style.display = 'none';
-        container.appendChild(loadingView);
-        
-        // Dynamic status switcher to make the UI feel alive
-        const phaseText = document.getElementById('phase-text');
-        setTimeout(() => {
-            if (phaseText) phaseText.innerText = "Phase 2: Reflected XSS Detection & Payload Injection";
-        }, 30000); // Switches text after 30 seconds
+    try {
+        // We pass the findingId to the Flask bridge as a query parameter
+        const response = await fetch(`/get_ai_analysis?id=${findingId}`);
+        const data = await response.json();
+
+        // Inject the AI response into the terminal
+        term.innerHTML = `<div class="text-[#8b949e] whitespace-pre-wrap">${data.analysis}</div>`;
+        term.scrollTop = term.scrollHeight; // Auto-scroll
+    } catch (err) {
+        term.innerHTML = '<p class="text-red-500 font-mono">CRITICAL ERROR: AI AUDITOR UNREACHABLE</p>';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Fetch AI Insight';
     }
 }
 
-// 3. UI Interactions & Event Listeners
+/* ── 3. Enhanced Scan Progress UI ── */
+function startScan(e) {
+    const urlInput = document.getElementById('target-url');
+    const url = urlInput.value.trim();
+
+    if (!url) {
+        // Flash red if URL is missing
+        urlInput.classList.add('border-danger');
+        setTimeout(() => urlInput.classList.remove('border-danger'), 1000);
+        e.preventDefault();
+        return;
+    }
+
+    const btn = document.getElementById('scan-btn');
+    const progressWrap = document.getElementById('scan-progress-wrap');
+    const bar = document.getElementById('scan-bar');
+    const pct = document.getElementById('scan-pct');
+    const statusText = document.getElementById('scan-status-text');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Audit in Progress...';
+    lucide.createIcons(); // Refresh icons for the loading state
+
+    progressWrap.classList.remove('hidden');
+
+    // Simulated visual phases while backend works
+    const phases = [
+        [15, 'Phase 1: Mapping Forms & SQLi Analysis'],
+        [45, 'Phase 1.5: Crawling Hidden Endpoints...'],
+        [75, 'Phase 2: Reflected XSS Detection & Payload Injection'],
+        [90, 'Phase 2.5: Verifying DOM-based Vectors...'],
+        [100, 'Consolidating Findings...']
+    ];
+
+    let currentPhase = 0;
+    const interval = setInterval(() => {
+        if (currentPhase >= phases.length) {
+            clearInterval(interval);
+            return;
+        }
+        const [progress, msg] = phases[currentPhase++];
+        bar.style.width = progress + '%';
+        pct.textContent = progress + '%';
+        statusText.textContent = msg;
+    }, 2500);
+
+    // IMPORTANT: No e.preventDefault() here so the form reaches Flask!
+}
+
+/* ── 4. Dynamic Modal Logic ── */
+function openModal(payload) {
+    const overlay = document.getElementById('modal-overlay');
+    const modalPayload = document.getElementById('modal-payload');
+
+    // Set the text content of the modal to the specific payload
+    modalPayload.textContent = payload;
+    overlay.classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+}
+
+/* ── 5. Global Init ── */
 document.addEventListener('DOMContentLoaded', () => {
-    // Target the NEW /deep_scan route
-    const scanForm = document.querySelector('form[action="/deep_scan"]');
-    
-    if (scanForm) {
-        scanForm.addEventListener('submit', (e) => {
-            // Check if the URL is valid before showing loading
-            const urlInput = scanForm.querySelector('input[name="target_url"]');
-            if (urlInput.value.trim() !== "") {
-                showLoading();
-            }
-        });
-    }
-
-    // Auto-focus the URL input
-    const urlInput = document.querySelector('input[name="target_url"]');
-    if (urlInput) {
-        urlInput.focus();
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
     }
 });

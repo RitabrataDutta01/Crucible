@@ -1,5 +1,7 @@
-import json, requests, os, time
+import json, requests, os, time, concurrent.futures
 from datetime import datetime
+
+session = requests.Session()
 
 def looks_Real_Endpoint(form):
 
@@ -71,7 +73,7 @@ def set_baselines(forms):
                 else:
                     safe_data[input_name] = cd.get('value')
 
-            response = send_Request(action, 'post', safe_data)
+            response = send_Request(action, 'post', safe_data, session)
             if response is not None:
                 candidate['response_length_baseline'] = len(response.text)
                 candidate['response_code_baseline'] = response.status_code
@@ -94,7 +96,7 @@ def set_baselines(forms):
                 else:
                     safe_data[input_name] = cd.get('value')
 
-            response = send_Request(action, 'get', safe_data)
+            response = send_Request(action, 'get', safe_data, session)
 
             if response is not None:
                 candidate['response_length_baseline'] = len(response.text)
@@ -124,13 +126,13 @@ def prepare_Input_Data(candidate, load):
 
     return data
 
-def send_Request(action, method, data):
+def send_Request(action, method, data, session = None):
 
     try:
-        #time.sleep(5)
+        caller = session if session else requests
         if method == 'post':
-            return requests.post(action, data=data)
-        return requests.get(action, params=data)
+            return caller.post(action, data=data)
+        return caller.get(action, params=data)
     except requests.exceptions.RequestException:
         return None
 
@@ -147,7 +149,7 @@ def check_Auth_Bypass(candidate):
         print(f"  [>] Testing payload auth")
 
         data = prepare_Input_Data(candidate, load)
-        response = send_Request(candidate['action'] , candidate['method'], data)
+        response = send_Request(candidate['action'] , candidate['method'], data, session)
 
         if response is None:
             continue
@@ -182,7 +184,7 @@ def check_Error_Based(candidate):
         print(f"  [>] Testing payload error")
 
         data = prepare_Input_Data(candidate, load)
-        response = send_Request(candidate['action'] , candidate['method'], data)
+        response = send_Request(candidate['action'] , candidate['method'], data, session)
 
         if response is None:
             continue
@@ -214,7 +216,7 @@ def check_time_Based(candidate):
         print(f"  [>] Testing payload time")
 
         data = prepare_Input_Data(candidate, load['payload'])
-        response = send_Request(candidate['action'] , candidate['method'], data)
+        response = send_Request(candidate['action'] , candidate['method'], data, session)
 
         if response is None:
             continue
@@ -232,24 +234,34 @@ def check_time_Based(candidate):
 
     return findings
 
+def test_single_candidate(candidate):
+
+    results = []
+    results.extend(check_Auth_Bypass(candidate))
+    results.extend(check_Error_Based(candidate))
+    results.extend(check_time_Based(candidate))
+    return results
+
 def injector(forms):
     candidates = set_baselines(forms)
 
     vulnerable_pages = []
 
-    for candidate in candidates:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_vuln = {executor.submit(test_single_candidate, c): c for c in candidates}
 
-        vulnerable_pages.extend(check_Auth_Bypass(candidate))
-        vulnerable_pages.extend(check_Error_Based(candidate))
-        vulnerable_pages.extend(check_time_Based(candidate))
+        for future in concurrent.futures.as_completed(future_to_vuln):
+            try:
+                data = future.result()
+                if data:
+                    vulnerable_pages.extend(data)
+            except Exception as e:
+                print(f"[-] Thread error on candidate: {e}")
 
     if vulnerable_pages:
-        if not os.path.exists('reports'):
-            os.makedirs('reports')
-
+        if not os.path.exists('reports'): os.makedirs('reports')
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_filename = f"reports/scan_report_{timestamp}.json"
-
         with open(log_filename, 'w') as log_file:
             json.dump(vulnerable_pages, log_file, indent=4)
 

