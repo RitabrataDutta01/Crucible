@@ -3,6 +3,8 @@ from packages import crawler, sqli, XSS
 import os, json, subprocess, io
 import google.generativeai as genai
 from flask import send_file
+import requests
+
 app = Flask(__name__)
 REPORT_DIR = 'reports'
 
@@ -10,6 +12,8 @@ if not os.path.exists(REPORT_DIR):
     os.makedirs(REPORT_DIR)
 
 genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
+
+session = requests.Session()
 
 def get_reports():
     if not os.path.exists(REPORT_DIR):
@@ -23,12 +27,16 @@ def index():
 
 @app.route('/deep_scan', methods=['POST'])
 def scan():
+
+    if session is None:
+        return "Error: Could not authenticate with target. Check if DVWA is running.", 500
+
     target_url = request.form.get('target_url')
 
-    results = crawler.crawl(target_url)
+    results = crawler.crawl(target_url, session)
     all_forms = results.get('forms', [])
-    sqli_findings = sqli.injector(all_forms)
-    xss_findings = XSS.injector(all_forms)
+    sqli_findings = sqli.injector(all_forms, session)
+    xss_findings = XSS.injector(all_forms, session)
     total_findings = sqli_findings + xss_findings
 
     report_filename = f"scan_report_latest.json"

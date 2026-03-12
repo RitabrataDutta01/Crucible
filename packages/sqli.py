@@ -1,7 +1,7 @@
 import json, requests, os, time, concurrent.futures
 from datetime import datetime
 
-session = requests.Session()
+active_session = None
 
 try:
     with open('data/payloads.json', 'r') as f:
@@ -99,7 +99,7 @@ def set_baselines(forms):
 
         if method == 'post':
 
-            response = send_Request(action, 'post', safe_data, session)
+            response = send_Request(action, 'post', safe_data, active_session)
             if response is not None:
                 candidate['response_length_baseline'] = len(response.text)
                 candidate['response_code_baseline'] = response.status_code
@@ -111,7 +111,7 @@ def set_baselines(forms):
 
         elif method == 'get':
 
-            response = send_Request(action, 'get', safe_data, session)
+            response = send_Request(action, 'get', safe_data, active_session)
 
             if response is not None:
                 candidate['response_length_baseline'] = len(response.text)
@@ -163,7 +163,8 @@ def check_Auth_Bypass(candidate):
         print(f"  [>] Testing payload auth")
 
         data = prepare_Input_Data(candidate, load)
-        response = send_Request(candidate['action'] , candidate['method'], data, session)
+        response = send_Request(candidate['action'] , candidate['method'], data, active_session)
+        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
 
         if response is None:
             continue
@@ -192,7 +193,8 @@ def check_Error_Based(candidate):
         print(f"  [>] Testing payload error")
 
         data = prepare_Input_Data(candidate, load)
-        response = send_Request(candidate['action'] , candidate['method'], data, session)
+        response = send_Request(candidate['action'] , candidate['method'], data, active_session)
+        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
 
         if response is None:
             continue
@@ -221,7 +223,8 @@ def check_time_Based(candidate):
         print(f"  [>] Testing payload time")
 
         data = prepare_Input_Data(candidate, load['payload'])
-        response = send_Request(candidate['action'] , candidate['method'], data, session)
+        response = send_Request(candidate['action'] , candidate['method'], data, active_session)
+        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
 
         if response is None:
             continue
@@ -249,8 +252,12 @@ def test_single_candidate(candidate):
     results.extend(check_time_Based(candidate))
     return results
 
-def injector(forms):
+def injector(forms, session):
+    
+    global active_session 
+    active_session = session
     candidates = set_baselines(forms)
+    
 
     vulnerable_pages = []
 

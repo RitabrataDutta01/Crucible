@@ -1,8 +1,8 @@
 import requests, json, time, os, concurrent.futures
 from datetime import datetime
+from config import Config
 
-
-session = requests.Session()
+session = None
 
 def looks_Real_Endpoint(form):
 
@@ -86,7 +86,10 @@ def check_Reflected_XSS(candidate):
             
     return findings
 
-def injector(forms):
+def injector(forms, active_session):
+
+    global session
+    session = active_session
 
     candidates = [f for f in forms if looks_Real_Endpoint(f) and isActionable(f['inputs'])]
 
@@ -116,3 +119,6 @@ def injector(forms):
 
 
     return vulnerable_pages
+
+
+def relfection()

@@ -45,9 +45,13 @@ def extract_forms(soup, curr_url):
 
     return all_Forms
 
-def fetch_page(url):
-    webpage = requests.get(url, headers=headers, timeout=10)
-    return webpage
+def fetch_page(url, session):
+    try:
+        webpage = session.get(url, headers=headers, timeout=10)
+        return webpage
+    except Exception as e:
+        print(f"[-] Error fetching {url}: {e}")
+        return None
 
 def extract_links(soup, base_url):
 
@@ -75,7 +79,7 @@ def filter_links(urls, parsed_urls, base_host):
 
     return allowed_links
 
-def crawl(start_url, max_depth=1):
+def crawl(start_url, session, max_depth=1):
 
     visited = set()
     queue = deque([(start_url,0)])
@@ -98,9 +102,13 @@ def crawl(start_url, max_depth=1):
 
         visited.add(curr_url)
 
-        page = fetch_page(curr_url)
+        page = fetch_page(curr_url, session)
 
-        if page.status_code != 200:
+        if not page or page.status_code != 200:
+            continue
+        
+        if "login.php" in page.url and "login.php" not in curr_url:
+            print(f"[!] Warning: Session expired or invalid. Redirected to login.")
             continue
 
         cleaned_html = page.content.decode('utf-8', errors='replace')
