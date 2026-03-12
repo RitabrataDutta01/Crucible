@@ -1,9 +1,10 @@
 # Crucible: Multi-Engine Web Vulnerability Scanner
 
-Crucible is a modular Dynamic Application Security Testing (DAST) framework designed to identify and audit web-based vulnerabilities. Developed with a focus on automation, it integrates a web crawler with specialized injection engines and a centralized Flask-based management dashboard.
+Crucible is a modular Dynamic Application Security Testing (DAST) framework designed to identify and audit web-based vulnerabilities. Developed with a focus on automation, it integrates a web crawler with specialized injection engines, an AI-powered audit assistant, and a centralized Flask-based management dashboard.
 
 ![Python](https://img.shields.io/badge/Python-3.10.19-blue?style=flat-square&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-2.x-black?style=flat-square&logo=flask)
+![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-orange?style=flat-square&logo=google)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)
 
@@ -15,13 +16,16 @@ Crucible is a modular Dynamic Application Security Testing (DAST) framework desi
   Implements a Breadth-First Search (BFS) crawler to map target domains and identify attack surfaces such as HTML forms and URL parameters.
 
 - **SQL Injection Engine**  
-  Detects SQL injection vulnerabilities across multiple vectors: authentication bypass, error-based signature detection, and time-based blind injection.
+  Detects SQL injection vulnerabilities across multiple vectors: authentication bypass, error-based signature detection, and time-based blind injection. Runs candidates concurrently via a thread pool for faster coverage.
 
 - **Cross-Site Scripting Engine**  
-  Identifies reflected XSS vulnerabilities by testing whether injected payloads are returned unescaped in server responses.
+  Identifies reflected XSS vulnerabilities by testing whether injected payloads are returned unescaped in server responses. Fully parallelized with `ThreadPoolExecutor`.
+
+- **AI Audit Assistant**  
+  Integrates Google Gemini 2.5 Flash as a Senior Security Auditor. After a scan, the AI analyses findings and returns technical remediation advice — including specific code-level fixes — rendered inline in the dashboard terminal.
 
 - **Centralized Reporting**  
-  A web dashboard built with Flask for real-time scan monitoring, structured vulnerability output, and persistent JSON report history.
+  A GitHub-style dark web dashboard for real-time scan monitoring, structured vulnerability output, and persistent JSON report history. Includes a secure Export & Wipe function that downloads the report and deletes it from disk in one action.
 
 - **Modern Development Stack**  
   Managed via the `uv` package manager for high-performance dependency handling and environment isolation.
@@ -31,16 +35,17 @@ Crucible is a modular Dynamic Application Security Testing (DAST) framework desi
 ## Technical Stack
 
 - **Backend:** Python 3.10.19, Flask
+- **AI Integration:** Google Gemini 2.5 Flash (`google-generativeai`)
 - **Package Management:** uv
-- **Scanning Engine:** lxml, BeautifulSoup4
-- **Frontend:** HTML5, CSS3 (Dark Theme), JavaScript
+- **Scanning Engine:** lxml, BeautifulSoup4, `concurrent.futures`
+- **Frontend:** HTML5, Tailwind CSS, Vanilla JavaScript, Lucide Icons
 - **Environment:** Developed on ASUS TUF F17, compatible with Windows and Linux/WSL environments
 
 ---
 
 ## Installation
 
-This project requires **Python 3.10.19** and the **uv package manager**.
+This project requires **Python 3.10.19**, the **uv package manager**, and a **Google Gemini API key**.
 
 **1. Repository Setup**
 ```bash
@@ -63,7 +68,19 @@ uv sync
 
 **3. Dependencies**
 ```bash
-uv add flask requests beautifulsoup4 lxml python-dotenv
+uv add flask requests beautifulsoup4 lxml python-dotenv google-generativeai
+```
+
+**4. API Key Setup**
+
+The AI Auditor requires a Google Gemini API key set as an environment variable:
+
+```bash
+# Linux / macOS:
+export GOOGLE_API_KEY="your_key_here"
+
+# Windows (PowerShell):
+$env:GOOGLE_API_KEY="your_key_here"
 ```
 
 ---
@@ -75,8 +92,10 @@ uv add flask requests beautifulsoup4 lxml python-dotenv
     uv run python app.py
     ```
 2. Access the dashboard at `http://127.0.0.1:5000`.
-3. Input the target URL and initiate a scan.
-4. Review the generated vulnerability table for identified endpoints, payloads, and evidence.
+3. Input the target URL and initiate a Deep Scan.
+4. Review the findings grid for identified endpoints, payloads, and severity ratings.
+5. Open the **AI Auditor** panel and click **Fetch AI Insight** to get Gemini-powered remediation advice for your findings.
+6. Use **Export & Wipe** to download the report as JSON and securely delete it from the server.
 
 ---
 
@@ -84,13 +103,16 @@ uv add flask requests beautifulsoup4 lxml python-dotenv
 
 ```text
 crucible/
-├── app.py              # Application entry point and Flask routing
+├── app.py              # Application entry point, Flask routing, Gemini integration
 ├── packages/           # Modular vulnerability engines
-│   ├── crawler.py      # Web crawling and form extraction logic
-│   ├── sqli.py         # SQL injection detection module
-│   └── XSS.py          # Reflected XSS detection module
-├── static/             # Frontend assets (CSS and JavaScript)
-├── templates/          # Jinja2 HTML templates
+│   ├── crawler.py      # BFS web crawling and form extraction
+│   ├── sqli.py         # Multi-vector SQLi detection (threaded)
+│   └── XSS.py          # Reflected XSS detection (threaded)
+├── static/
+│   ├── css/style.css   # GitHub-style dark theme
+│   └── js/main.js      # Scan progress, AI bridge, modal logic
+├── templates/
+│   └── index.html      # Main dashboard (Tailwind + Lucide)
 ├── data/               # Security payloads and signature data
 ├── reports/            # JSON logs of completed scans
 └── pyproject.toml      # Dependency and project metadata
