@@ -3,6 +3,27 @@ from datetime import datetime
 
 session = requests.Session()
 
+try:
+    with open('data/payloads.json', 'r') as f:
+        PAYLOADS_DB = json.load(f)
+except FileNotFoundError:
+    PAYLOADS_DB = {'auth_bypass': [], 'time_based': []}
+    print("[-] Warning: data/payloads.json not found.")
+
+try:
+    with open('data/fuzzdb_sqli_arsenal.json', 'r') as f:
+        FUZZDB_ARSENAL = [item['payload'] for item in json.load(f)]
+except FileNotFoundError:
+    FUZZDB_ARSENAL = []
+    print("[-] Warning: data/fuzzdb_sqli_arsenal.json not found.")
+
+try:
+    with open('data/errorSignature.json', 'r') as fn:
+        ERROR_SIGNATURES = json.load(fn)
+except FileNotFoundError:
+    ERROR_SIGNATURES = []
+    print("[-] Warning: data/errorSignature.json not found.")
+
 def looks_Real_Endpoint(form):
 
     action = form['action']
@@ -48,6 +69,23 @@ def sqli_scanner(forms):
 
     return candidates
 
+def prime_dummy(candidate):
+
+    safe_data = {}
+
+    for cd in candidate['inputs']:
+
+        input_name = cd.get('name')
+        if not input_name:
+            continue
+
+        if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
+            safe_data[input_name] = 'Dummy'
+        else:
+            safe_data[input_name] = cd.get('value')
+
+    return safe_data
+
 def set_baselines(forms):
 
     candidates = sqli_scanner(forms)
@@ -56,54 +94,33 @@ def set_baselines(forms):
 
         method = candidate['method']
 
-        safe_data = {}
+        safe_data = prime_dummy(candidate)
+        action = candidate['action']
 
         if method == 'post':
-
-            action = candidate['action']
-
-            for cd in candidate['inputs']:
-
-                input_name = cd.get('name')
-                if not input_name:
-                    continue
-
-                if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
-                    safe_data[input_name] = 'Dummy'
-                else:
-                    safe_data[input_name] = cd.get('value')
 
             response = send_Request(action, 'post', safe_data, session)
             if response is not None:
                 candidate['response_length_baseline'] = len(response.text)
                 candidate['response_code_baseline'] = response.status_code
+                candidate['time_elapsed'] = response.elapsed.total_seconds()
             else:
                 candidate['response_length_baseline'] = 0
                 candidate['response_code_baseline'] = 0
+                candidate['time_elapsed'] = 0
 
         elif method == 'get':
-
-            action = candidate['action']
-
-            for cd in candidate['inputs']:
-
-                input_name = cd.get('name')
-                if not input_name:
-                    continue
-
-                if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
-                    safe_data[input_name] = 'Dummy'
-                else:
-                    safe_data[input_name] = cd.get('value')
 
             response = send_Request(action, 'get', safe_data, session)
 
             if response is not None:
                 candidate['response_length_baseline'] = len(response.text)
                 candidate['response_code_baseline'] = response.status_code
+                candidate['time_elapsed'] = response.elapsed.total_seconds()
             else:
                 candidate['response_length_baseline'] = 0
                 candidate['response_code_baseline'] = 0
+                candidate['time_elapsed'] = 0
 
     return candidates
 
@@ -138,11 +155,8 @@ def send_Request(action, method, data, session = None):
 
 def check_Auth_Bypass(candidate):
 
-    with open('data/payloads.json', 'r') as f:
-        payload = json.load(f)
-
-    arsenal = payload['auth_bypass']
-    findings=[]
+    arsenal = PAYLOADS_DB.get('auth_bypass', [])
+    findings = []
 
     for load in arsenal:
 
@@ -169,16 +183,10 @@ def check_Auth_Bypass(candidate):
 
 def check_Error_Based(candidate):
 
-    with open('data/fuzzdb_sqli_arsenal.json', 'r') as f:
-        fuzzdb_data = json.load(f)
-
-    with open('data/errorSignature.json', 'r') as fn:
-        errorSignature = json.load(fn)
-
-    arsenal = [item['payload'] for item in fuzzdb_data]
-
+    arsenal = FUZZDB_ARSENAL
     findings = []
     unique_hits = {}
+
     for load in arsenal:
 
         print(f"  [>] Testing payload error")
@@ -189,7 +197,7 @@ def check_Error_Based(candidate):
         if response is None:
             continue
 
-        if any(error.lower() in response.text.lower() for error in errorSignature):
+        if any(error.lower() in response.text.lower() for error in ERROR_SIGNATURES):
             if candidate['found on'] not in unique_hits:
                 unique_hits[candidate['found on']] = 1
                 finding = {
@@ -206,10 +214,7 @@ def check_Error_Based(candidate):
 
 def check_time_Based(candidate):
 
-    with open('data/payloads.json', 'r') as f:
-        payload = json.load(f)
-
-    arsenal = payload['time_based']
+    arsenal = PAYLOADS_DB.get('time_based', [])
     findings = []
 
     for load in arsenal:
@@ -221,7 +226,9 @@ def check_time_Based(candidate):
         if response is None:
             continue
         duration = response.elapsed.total_seconds()
-        if duration >= load['delay']:
+
+        threshold = candidate['time_elapsed'] + 2.0 + load['delay']
+        if duration >= threshold:
 
             finding = {
                 'url' : candidate['found on'],
