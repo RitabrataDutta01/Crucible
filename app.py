@@ -70,8 +70,9 @@ def get_ai_analysis():
         model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = (
             f"You are a Senior Security Auditor. Analyze these specific findings: {json.dumps(report_data[:5])}. "
-            "For each, explain: 1. Why this payload works on this URL. 2. The specific line of code fix (e.g., Prepared Statements). "
-            "Keep it technical and concise for a terminal output."
+            "For each, explain: 1. Why this payload works on this URL. 2. The specific line of code fix (e.g., Prepared Statements). ",
+            "Keep it technical and concise for a terminal output. 3. Generate a PHP/JS/Python code block needed to fix the vulnerability.",
+            "4. Rate the severity (Low/Medium/High/Critical)."
         )
         response = model.generate_content(prompt)
         return jsonify({"analysis": response.text})
@@ -99,7 +100,6 @@ def download_report(filename):
     except Exception as e:
         print(f"Cleanup Error: {e}")
 
-        # 3. Send the RAM copy to the browser
     return send_file(
         io.BytesIO(file_data),
         mimetype='application/json',
@@ -109,3 +109,8 @@ def download_report(filename):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+
+

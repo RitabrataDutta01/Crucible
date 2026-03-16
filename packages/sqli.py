@@ -168,8 +168,14 @@ def check_Auth_Bypass(candidate):
 
         if response is None:
             continue
+        
+        length = abs(len(response.text) - candidate['response_length_baseline'])
+        change = length > (candidate['response_length_baseline']*10)
+        
+        success_keywords = ["logout", "sign off", "my account", "welcome"]
+        found_success = any(word in response.text.lower() for word in success_keywords)
 
-        if response.status_code == 200 and len(response.text) > candidate['response_length_baseline']:
+        if response.status_code == 200 and (change or found_success):
             finding = {
                 'url' : candidate['found on'],
                 'vulnerability type': 'Auth Bypass SQLI',
@@ -181,13 +187,13 @@ def check_Auth_Bypass(candidate):
             findings.append(finding)
             break
 
-        if response.status_code == 500:
+        elif response.status_code == 500:
             finding = {
                 'url' : candidate['found on'],
                 'vulnerability type': 'Auth Bypass SQLI',
                 'payload': load,
                 'severity': 'Critical',
-                'evidence': f"Auth bypass successful on {candidate.get('action', 'target')} using payload: {load}",
+                'evidence': f"Potential server crash(500) on {candidate.get('action', 'target')} using payload: {load}",
                 'status': response.status_code
             }
 
@@ -235,14 +241,18 @@ def check_time_Based(candidate):
 
     for load in arsenal:
         print(f"  [>] Testing payload time")
+        
+        start_clock = time.perf_counter()
 
         data = prepare_Input_Data(candidate, load['payload'])
         response = send_Request(candidate['action'] , candidate['method'], data, active_session)
         print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
+        
+        
+        duration = time.perf_counter() - start_clock
 
         if response is None:
             continue
-        duration = response.elapsed.total_seconds()
 
         threshold = candidate['time_elapsed'] + 2.0 + load['delay']
         if duration >= threshold:

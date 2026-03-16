@@ -5,6 +5,8 @@ from config import Config
 session = None
 probe = """crucible'"><;"""
 
+DANGER_TAGS = ['<script', '<img', '<iframe', '<svg', '<a ']
+
 def looks_Real_Endpoint(form):
 
     action = form['action']
@@ -64,7 +66,6 @@ def check_Reflected_XSS(candidate):
 
     arsenal = payload['payload']
     findings=[]
-
     for load in arsenal:
 
         mutated_load = f"{breaker}{load}"
@@ -73,10 +74,13 @@ def check_Reflected_XSS(candidate):
 
         data = prepare_Input_Data(candidate, mutated_load)
         response = send_Request(candidate['action'] , candidate['method'], data, session)
+        tag_count = 0
+        for tag in DANGER_TAGS:
+            tag_count += response.text.lower().count(tag)
 
         if response is not None:
 
-            if mutated_load in response.text:
+            if mutated_load in response.text and tag_count>candidate.get('tags',0):
                 findings.append({
                     'vulnerability type': 'Reflected XSS',
                     'context': candidate.get('type', 'Unknown'),
@@ -173,7 +177,7 @@ def reflection(candidate):
             "quot_encoded": "&quot;" in rp or "&#34;" in rp
         }
 
-        strategy = {"vulnerable": False, "type": "Unknown", "breaker": ""}
+        strategy = {"vulnerable": False, "type": "Unknown", "breaker": "", 'tags': 0}
 
         if preceeding_part.strip().endswith('>'):
             
@@ -181,6 +185,7 @@ def reflection(candidate):
             if survival["lt_raw"] and survival["gt_raw"]:
                 strategy['breaker'] = ""
                 strategy['vulnerable'] = True
+                strategy['tags'] = sum([txt.lower().count(tag) for tag in DANGER_TAGS])
 
         elif '=' in preceeding_part or '="' in preceeding_part:
             
@@ -189,6 +194,7 @@ def reflection(candidate):
             if survival["quot_raw"] and survival["gt_raw"]:
                 strategy["vulnerable"] = True
                 strategy["breaker"] = '">'
+                strategy['tags'] = sum([txt.lower().count(tag) for tag in DANGER_TAGS])
 
         elif "var" in preceeding_part or "script" in preceeding_part.lower():
             strategy["type"] = "Javascript"
@@ -196,6 +202,7 @@ def reflection(candidate):
             if survival["apos_raw"] and survival["semi_raw"]:
                 strategy["vulnerable"] = True
                 strategy["breaker"] = "';"
+                strategy['tags'] = sum([txt.lower().count(tag) for tag in DANGER_TAGS])
 
         candidate.update(strategy)
         return candidate
