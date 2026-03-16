@@ -3,6 +3,7 @@ from datetime import datetime
 from config import Config
 
 session = None
+probe = """crucible'"><;"""
 
 def looks_Real_Endpoint(form):
 
@@ -57,6 +58,7 @@ def send_Request(action, method, data, session = None):
     
 def check_Reflected_XSS(candidate):
 
+    breaker = candidate.get('breaker', '')
     with open('data/XSS.json', 'r') as f:
         payload = json.load(f)
 
@@ -65,18 +67,21 @@ def check_Reflected_XSS(candidate):
 
     for load in arsenal:
 
-        print(f"  [>] Testing payload XSS")
+        mutated_load = f"{breaker}{load}"
 
-        data = prepare_Input_Data(candidate, load)
+        print(f"  [>] Testing payload: {mutated_load[:20]}.....")
+
+        data = prepare_Input_Data(candidate, mutated_load)
         response = send_Request(candidate['action'] , candidate['method'], data, session)
 
         if response is not None:
 
-            if load in response.text:
+            if mutated_load in response.text:
                 findings.append({
                     'vulnerability type': 'Reflected XSS',
+                    'context': candidate.get('type', 'Unknown'),
                     'url': candidate.get('found on', 'Unknown Source'),
-                    'payload': load,
+                    'payload': mutated_load,
                     'endpoint': candidate['action'],
                     'method': candidate['method'],
                     'data': data
@@ -94,18 +99,32 @@ def injector(forms, active_session):
     candidates = [f for f in forms if looks_Real_Endpoint(f) and isActionable(f['inputs'])]
 
     vulnerable_pages = []
+    exploitable = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
 
-        future_to_xss = {executor.submit(check_Reflected_XSS, c): c for c in candidates}
+        probe = {executor.submit(reflection,c): c for c in candidates}
 
-        for future in concurrent.futures.as_completed(future_to_xss):
+        for future in concurrent.futures.as_completed(probe):
             try:
-                findings = future.result()
-                if findings:
-                    vulnerable_pages.extend(findings)
+                probe_report = future.result()
+                if probe_report and probe_report.get('vulnerable'):
+                    exploitable.append(probe_report)
+
             except Exception as e:
-                print(f"[-] XSS Thread error: {e}")
+                print(f"[-] Scouting Error: {e}")
+
+        if exploitable:
+            attacks = {executor.submit(check_Reflected_XSS, t): t for t in exploitable}
+
+            for future in concurrent.futures.as_completed(attacks):
+
+                try:
+                    findings = future.result()
+                    if findings:
+                        vulnerable_pages.extend(findings)
+                except Exception as e:
+                    print(f"[-] Attack Thread Error: {e}")
 
     if vulnerable_pages:
         if not os.path.exists('reports'):
@@ -121,4 +140,64 @@ def injector(forms, active_session):
     return vulnerable_pages
 
 
-def relfection()
+def reflection(candidate):
+    
+    global probe
+    load = probe
+    findings = []
+
+    data = prepare_Input_Data(candidate, load)
+    response = send_Request(candidate['action'] , candidate['method'], data, session)
+    
+    if response is None:
+        return None
+
+    txt = response.text
+    
+    if load in txt:
+
+        occurence_index = txt.find(load)
+
+        start_snippet = max(0, occurence_index-15)
+        preceeding_part = txt[start_snippet:occurence_index]
+
+        rp = txt[occurence_index:occurence_index+len(load)]
+
+        survival = {
+            "lt_raw": "<" in rp,
+            "gt_raw": ">" in rp,
+            "quot_raw": '"' in rp,
+            "apos_raw": "'" in rp,
+            "semi_raw": ";" in rp,
+            "lt_encoded": "&lt;" in rp or "&#60;" in rp,
+            "quot_encoded": "&quot;" in rp or "&#34;" in rp
+        }
+
+        strategy = {"vulnerable": False, "type": "Unknown", "breaker": ""}
+
+        if preceeding_part.strip().endswith('>'):
+            
+            strategy["type"] = "HTML"
+            if survival["lt_raw"] and survival["gt_raw"]:
+                strategy['breaker'] = ""
+                strategy['vulnerable'] = True
+
+        elif '=' in preceeding_part or '="' in preceeding_part:
+            
+            strategy["type"] = "Attribute"
+
+            if survival["quot_raw"] and survival["gt_raw"]:
+                strategy["vulnerable"] = True
+                strategy["breaker"] = '">'
+
+        elif "var" in preceeding_part or "script" in preceeding_part.lower():
+            strategy["type"] = "Javascript"
+
+            if survival["apos_raw"] and survival["semi_raw"]:
+                strategy["vulnerable"] = True
+                strategy["breaker"] = "';"
+
+        candidate.update(strategy)
+        return candidate
+
+    return None

@@ -180,6 +180,19 @@ def check_Auth_Bypass(candidate):
 
             findings.append(finding)
             break
+
+        if response.status_code == 500:
+            finding = {
+                'url' : candidate['found on'],
+                'vulnerability type': 'Auth Bypass SQLI',
+                'payload': load,
+                'severity': 'Critical',
+                'evidence': f"Auth bypass successful on {candidate.get('action', 'target')} using payload: {load}",
+                'status': response.status_code
+            }
+
+            findings.append(finding)
+            break
     return findings
 
 def check_Error_Based(candidate):
@@ -207,7 +220,8 @@ def check_Error_Based(candidate):
                     'vulnerability type': 'Error Based SQLI',
                     'payload': load,
                     'severity': 'Critical',
-                    'evidence': f"Server error by {candidate['found on']}"
+                    'evidence': f"Server error by {candidate['found on']}",
+                    'status': response.status_code
                 }
                 findings.append(finding)
                 break

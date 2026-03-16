@@ -1,0 +1,16 @@
+[
+    {
+        "url": "http://demo.testfire.net/",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://demo.testfire.net/search.jsp using payload: ' OR '1'='1"
+    },
+    {
+        "url": "http://demo.testfire.net/feedback.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://demo.testfire.net/sendFeedback using payload: ' OR '1'='1"
+    }
+]
