@@ -151,11 +151,11 @@ Every finding produced by the injection engines conforms to a unified schema to 
 
 Preview-
 
-![Welcome Dashboard Preview](welcome-dash.png)
+![Welcome Dashboard Preview](./assets/welcome-dash.png)
 ---
-![Ongoing Scan Preview](ongoing.png)
+![Ongoing Scan Preview](./assets/ongoing.png)
 ---
-![Results Dashboard Preview](results-dash.png)
+![Results Dashboard Preview](./assets/results-dash.png)
 
 ---
 
