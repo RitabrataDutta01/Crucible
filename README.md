@@ -149,6 +149,16 @@ Every finding produced by the injection engines conforms to a unified schema to 
 
 ---
 
+Preview-
+
+![Welcome Dashboard Preview](welcome-dash.png)
+---
+![Ongoing Scan Preview](ongoing.png)
+---
+![Results Dashboard Preview](results-dash.png)
+
+---
+
 ## Ongoing Development
 
 The following modules are currently in development as part of the Crucible expansion roadmap:
@@ -156,6 +166,12 @@ The following modules are currently in development as part of the Crucible expan
 - **Local File Inclusion (LFI) Engine** — auditing URL parameters for directory traversal and sensitive file access.
 - **Header Security Auditor** — analysis of HTTP response headers for security misconfigurations (CSP, HSTS, X-Frame-Options).
 - **Machine Learning Integration** — implementation of a Naive Bayes classifier to improve detection accuracy and reduce false positives.
+
+---
+
+## Note
+
+If using the "Crucible-Scanner.exe" from the releases, after double clicking on the exe file please go to your web browser and go to localhost:5000 and then use.
 
 ---
 
