@@ -11,6 +11,7 @@ dependencies = [
     "google-generativeai>=0.8.6",
     "lxml>=6.0.2",
     "numpy>=2.2.6",
+    "pyinstaller>=6.19.0",
     "python-dotenv>=1.2.2",
     "requests>=2.32.5",
     "six>=1.17.0",
