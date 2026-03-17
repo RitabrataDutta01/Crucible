@@ -89,7 +89,7 @@ def view_report(filename):
 
 @app.route('/download/<filename>')
 def download_report(filename):
-    file_path = os.path.join(REPORT_DIR, filename)
+    file_path = os.path.abspath(os.path.join(REPORT_DIR, filename))
     if not os.path.exists(file_path):
         return "Report not found", 404
     with open(file_path, 'rb') as f:

@@ -130,17 +130,6 @@ def injector(forms, active_session):
                 except Exception as e:
                     print(f"[-] Attack Thread Error: {e}")
 
-    if vulnerable_pages:
-        if not os.path.exists('reports'):
-            os.makedirs('reports')
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_filename = f"reports/scan_report_{timestamp}.json"
-
-        with open(log_filename, 'w') as log_file:
-            json.dump(vulnerable_pages, log_file, indent=4)
-
-
     return vulnerable_pages
 
 

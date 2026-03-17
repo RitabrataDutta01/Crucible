@@ -1,5 +1,6 @@
 import json, requests, os, time, concurrent.futures
 from datetime import datetime
+import numpy as np
 
 active_session = None
 
@@ -104,11 +105,27 @@ def set_baselines(forms):
                 candidate['response_length_baseline'] = len(response.text)
                 candidate['response_code_baseline'] = response.status_code
                 candidate['time_elapsed'] = response.elapsed.total_seconds()
+                
+                durations = []
+                for _ in range(3):
+                    start = time.perf_counter()
+                    response = send_Request(action, 'post', safe_data, active_session)
+                    duration = time.perf_counter() - start
+                    durations.append(duration)
+            
+                candidate['server_delay_baseline'] = np.std(durations)
+                candidate['time_mean'] = np.mean(durations)
+                candidate['jitter'] = max(0.05, candidate['server_delay_baseline']*3)
+
             else:
                 candidate['response_length_baseline'] = 0
                 candidate['response_code_baseline'] = 0
                 candidate['time_elapsed'] = 0
-
+                candidate['server_delay_baseline'] = 0
+                candidate['time_mean'] = 0
+                candidate['jitter'] = 0
+            
+            
         elif method == 'get':
 
             response = send_Request(action, 'get', safe_data, active_session)
@@ -117,11 +134,26 @@ def set_baselines(forms):
                 candidate['response_length_baseline'] = len(response.text)
                 candidate['response_code_baseline'] = response.status_code
                 candidate['time_elapsed'] = response.elapsed.total_seconds()
+                
+                durations = []
+                for _ in range(3):
+                    start = time.perf_counter()
+                    response = send_Request(action, 'get', safe_data, active_session)
+                    duration = time.perf_counter() - start
+                    durations.append(duration)
+            
+                candidate['server_delay_baseline'] = np.std(durations)
+                candidate['time_mean'] = np.mean(durations)
+                candidate['jitter'] = max(0.05, np.std(durations) * 3)
+                
             else:
                 candidate['response_length_baseline'] = 0
                 candidate['response_code_baseline'] = 0
                 candidate['time_elapsed'] = 0
-
+                candidate['server_delay_baseline'] = 0
+                candidate['time_mean'] = 0
+                candidate['jitter'] = 0
+                
     return candidates
 
 
@@ -170,7 +202,7 @@ def check_Auth_Bypass(candidate):
             continue
         
         length = abs(len(response.text) - candidate['response_length_baseline'])
-        change = length > (candidate['response_length_baseline']*10)
+        change = length > (candidate['response_length_baseline']*0.1)
         
         success_keywords = ["logout", "sign off", "my account", "welcome"]
         found_success = any(word in response.text.lower() for word in success_keywords)
@@ -254,7 +286,7 @@ def check_time_Based(candidate):
         if response is None:
             continue
 
-        threshold = candidate['time_elapsed'] + 2.0 + load['delay']
+        threshold = candidate['time_mean'] + candidate['jitter'] + load.get('delay', 5) - 1.0
         if duration >= threshold:
 
             finding = {
@@ -265,6 +297,7 @@ def check_time_Based(candidate):
                 'evidence': f"Server delayed by {duration}s"
             }
             findings.append(finding)
+            break
 
     return findings
 
@@ -295,13 +328,5 @@ def injector(forms, session):
                     vulnerable_pages.extend(data)
             except Exception as e:
                 print(f"[-] Thread error on candidate: {e}")
-
-    if vulnerable_pages:
-        if not os.path.exists('reports'): os.makedirs('reports')
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_filename = f"reports/scan_report_{timestamp}.json"
-        with open(log_filename, 'w') as log_file:
-            json.dump(vulnerable_pages, log_file, indent=4)
-
 
     return vulnerable_pages
