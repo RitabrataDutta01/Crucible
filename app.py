@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify
-from packages import crawler, sqli, XSS
+from packages import crawler, sqli, XSS, lfi
 import os, json, subprocess, io
 import google.generativeai as genai
 from flask import send_file
@@ -49,9 +49,10 @@ def scan():
 
     results = crawler.crawl(target_url, session)
     all_forms = results.get('forms', [])
-    sqli_findings = sqli.injector(all_forms, session)
-    xss_findings = XSS.injector(all_forms, session)
-    total_findings = sqli_findings + xss_findings
+    #sqli_findings = sqli.injector(all_forms, session)
+    #xss_findings = XSS.injector(all_forms, session)
+    lfi_findings = lfi.injector(results, session)
+    total_findings = lfi_findings
 
     report_filename = f"scan_report_latest.json"
 
@@ -123,3 +124,4 @@ def download_report(filename):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
