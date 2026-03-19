@@ -19,8 +19,12 @@ def send_request(urls):
     
     url = urls['url'] 
     try:
-        response = active_session.get(url, timeout=10)
-        return {urls['payload']:response}
+        response = active_session.get(url, timeout=25)
+        return {
+            "response": response,
+            "payload" : urls['payload'],
+            "status" : response.status_code
+        }
     except Exception as e:
         print(f"[-] Error sending request to {url}: {e}")
         return {}
@@ -74,9 +78,19 @@ def injector(forms, session):
         for result in concurrent.futures.as_completed(results):
             res = result.result()
             if res:
-                for signature, response in res.items():
-                    if signature.lower() in response.text.lower():
-                        print(f"[+] Potential LFI found with payload: {signature}")
-                        findings.append({'vulnerability': 'LFI', 'payload': signature, 'evidence': response.text[:200]})
+                response = res['response']
+                signature = res['payload']
+                
+                if signature.lower() in response.text.lower():
+                    findings.append({'vulnerability': 'LFI', 'payload': signature, 'evidence': 'File Content Leaked'})
+                    
+                elif response.status_code == 500 and "java.lang" in response.text:
+                    findings.append({
+                        'vulnerability': 'LFI / Improper Input Validation', 
+                        'url': response.url,
+                        'payload': signature, 
+                        'evidence': 'Triggered Server-Side Exception (500 Error)'
+                    })
         
     return findings
+

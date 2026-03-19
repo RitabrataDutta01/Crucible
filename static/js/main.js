@@ -8,47 +8,50 @@ function toggleSidebar() {
     sb.classList.toggle('collapsed');
 }
 
-/* ── 2. The AI Analyst Bridge (MCP Connection) ── */
+/* ── 2. The AI Analyst Bridge (Typing Effect) ── */
 async function fetchAiInsight() {
     const term = document.getElementById('ai-terminal');
     const btn = document.getElementById('ai-btn');
     const sel = document.getElementById('ai-finding-select');
 
-    // Get the specific finding ID selected by the user
     const findingId = sel ? sel.value : 'all';
 
     btn.disabled = true;
     btn.innerHTML = '<span class="animate-pulse">Consulting Gemini...</span>';
-    term.innerHTML = '<p class="prompt">Accessing Audit Archives via MCP...</p>';
+    term.innerHTML = '<p class="text-[#8b949e]">Initializing neural audit... Please wait.</p>';
 
     try {
-        // We pass the findingId to the Flask bridge as a query parameter
         const response = await fetch(`/get_ai_analysis?id=${findingId}`);
         const data = await response.json();
+        const text = data.analysis;
 
-        // Inject the AI response into the terminal
-        term.innerHTML = `<div class="text-[#8b949e] whitespace-pre-wrap">${data.analysis}</div>`;
-        term.scrollTop = term.scrollHeight; // Auto-scroll
+        term.innerHTML = ""; // Clear for typing effect
+        let i = 0;
+        
+        function typeWriter() {
+            if (i < text.length) {
+                term.innerHTML += text.charAt(i) === '\n' ? '<br>' : text.charAt(i);
+                i++;
+                term.scrollTop = term.scrollHeight;
+                setTimeout(typeWriter, 5);
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Fetch AI Insight';
+            }
+        }
+        typeWriter();
+
     } catch (err) {
-        term.innerHTML = '<p class="text-red-500 font-mono">CRITICAL ERROR: AI AUDITOR UNREACHABLE</p>';
-    } finally {
+        term.innerHTML = '<p class="text-red-500 font-mono">CRITICAL ERROR: AI AUDITOR UPLINK FAILED</p>';
         btn.disabled = false;
-        btn.textContent = 'Fetch AI Insight';
+        btn.textContent = 'Retry Audit';
     }
 }
 
 /* ── 3. Enhanced Scan Progress UI ── */
 function startScan(e) {
     const urlInput = document.getElementById('target-url');
-    const url = urlInput.value.trim();
-
-    if (!url) {
-        // Flash red if URL is missing
-        urlInput.classList.add('border-danger');
-        setTimeout(() => urlInput.classList.remove('border-danger'), 1000);
-        e.preventDefault();
-        return;
-    }
+    if (!urlInput.value.trim()) return;
 
     const btn = document.getElementById('scan-btn');
     const progressWrap = document.getElementById('scan-progress-wrap');
@@ -57,18 +60,18 @@ function startScan(e) {
     const statusText = document.getElementById('scan-status-text');
 
     btn.disabled = true;
-    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Audit in Progress...';
-    lucide.createIcons(); // Refresh icons for the loading state
+    btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Engine Active...';
+    lucide.createIcons();
 
     progressWrap.classList.remove('hidden');
 
-    // Simulated visual phases while backend works
     const phases = [
-        [15, 'Phase 1: Mapping Forms & SQLi Analysis'],
-        [45, 'Phase 1.5: Crawling Hidden Endpoints...'],
-        [75, 'Phase 2: Reflected XSS Detection & Payload Injection'],
-        [90, 'Phase 2.5: Verifying DOM-based Vectors...'],
-        [100, 'Consolidating Findings...']
+        [10, 'Warming Engines...'],
+        [25, 'Phase 1: Deep Crawl & Form Discovery'],
+        [45, 'Phase 2: SQLi Payload Injection'],
+        [65, 'Phase 3: Reflected XSS Validation'],
+        [85, 'Phase 4: LFI Behavioral Analysis (500-Error Detection)'],
+        [100, 'Consolidating Reports...']
     ];
 
     let currentPhase = 0;
@@ -81,17 +84,13 @@ function startScan(e) {
         bar.style.width = progress + '%';
         pct.textContent = progress + '%';
         statusText.textContent = msg;
-    }, 2500);
-
-    // IMPORTANT: No e.preventDefault() here so the form reaches Flask!
+    }, 3000);
 }
 
 /* ── 4. Dynamic Modal Logic ── */
 function openModal(payload) {
     const overlay = document.getElementById('modal-overlay');
     const modalPayload = document.getElementById('modal-payload');
-
-    // Set the text content of the modal to the specific payload
     modalPayload.textContent = payload;
     overlay.classList.remove('hidden');
 }

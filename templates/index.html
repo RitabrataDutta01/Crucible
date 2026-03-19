@@ -80,7 +80,7 @@
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold flex items-center gap-2">
           <i data-lucide="layout-grid" class="w-4 h-4 text-[#8b949e]"></i>
-          Audit Findings
+          Audit Findings {% if results %}<span class="text-[#f85149] font-mono">({{ results|length }})</span>{% endif %}
         </h3>
         <div class="text-[10px] font-mono text-[#484f58]">OWASP TOP-10 COVERAGE: ACTIVE</div>
       </div>
@@ -89,20 +89,32 @@
         {% if results %}
           {% for hit in results %}
           <article class="vuln-card bg-[#161b22] border border-[#30363d] rounded-xl p-4 relative overflow-hidden flex flex-col justify-between group">
-            <div class="absolute left-0 inset-y-0 w-1 {% if 'SQLI' in hit['vulnerability type']|upper %}bg-[#f85149] shadow-[2px_0_10px_rgba(248,81,73,0.3)]{% else %}bg-[#e3b341] shadow-[2px_0_10px_rgba(227,179,65,0.3)]{% endif %}"></div>
+            <div class="absolute left-0 inset-y-0 w-1 
+              {% if 'SQLI' in hit['vulnerability type']|upper or 'LFI' in hit['vulnerability type']|upper %}
+                bg-[#f85149] shadow-[2px_0_10px_rgba(248,81,73,0.3)]
+              {% else %}
+                bg-[#e3b341] shadow-[2px_0_10px_rgba(227,179,65,0.3)]
+              {% endif %}">
+            </div>
 
             <div>
                 <div class="flex justify-between items-start mb-3">
                   <h3 class="text-[11px] font-bold text-[#e6edf3] uppercase tracking-tighter">{{ hit['vulnerability type'] }}</h3>
-                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#0d1117] border border-[#30363d] text-[#8b949e]">
-                    {% if 'SQLI' in hit['vulnerability type']|upper %}CRITICAL{% else %}HIGH{% endif %}
+                  <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#0d1117] border border-[#30363d] 
+                    {% if 'SQLI' in hit['vulnerability type']|upper or 'LFI' in hit['vulnerability type']|upper %}text-[#f85149]{% else %}text-[#e3b341]{% endif %}">
+                    {% if 'SQLI' in hit['vulnerability type']|upper or 'LFI' in hit['vulnerability type']|upper %}CRITICAL{% else %}HIGH{% endif %}
                   </span>
                 </div>
                 <p class="text-[10px] text-[#8b949e] font-mono truncate bg-[#0d1117] p-1.5 rounded border border-[#30363d] mb-3">{{ hit.url }}</p>
-                <div class="relative">
+                <div class="relative space-y-2">
                   <code class="block bg-[#010409] p-2 text-[10px] text-[#f85149] rounded border border-[#30363d] font-mono break-all line-clamp-2">
                     {{ hit.payload }}
                   </code>
+                  {% if hit.evidence %}
+                  <div class="text-[9px] font-mono text-[#3fb950] bg-[#3fb9500d] p-1.5 rounded border border-[#3fb95033] italic">
+                    EV: {{ hit.evidence }}
+                  </div>
+                  {% endif %}
                 </div>
             </div>
 
@@ -126,7 +138,7 @@
           <i data-lucide="bot" class="w-4 h-4 text-[#58a6ff]"></i>
           <h2 class="text-sm font-semibold text-[#58a6ff] font-mono">AI Auditor</h2>
         </div>
-        <button onclick="toggleSidebar()"><i data-lucide="panel-right-close" class="w-4 h-4"></i></button>
+        <button onclick="toggleSidebar()"><i data-lucide="panel-right-close" class="w-4 h-4 text-[#8b949e]"></i></button>
       </div>
 
       <div>
@@ -141,8 +153,8 @@
         </select>
       </div>
 
-      <div id="ai-terminal" class="terminal flex-1 overflow-y-auto p-4 rounded-lg text-[11px] bg-[#010409] border border-[#30363d] shadow-inner">
-        <p class="prompt">Initialize audit for expert insights...</p>
+      <div id="ai-terminal" class="terminal flex-1 overflow-y-auto p-4 rounded-lg text-[11px] bg-[#010409] border border-[#30363d] shadow-inner font-mono text-[#7ee787] leading-relaxed">
+        <p class="text-[#8b949e]">/system/ Crucible Auditor ready...</p>
       </div>
 
       <div class="flex flex-col gap-2">
@@ -151,12 +163,14 @@
           </button>
 
           <a href="/download/scan_report_latest.json"
-             class="w-full py-2.5 rounded-lg text-[10px] font-mono font-bold text-center border border-[#30363d] text-[#8b949e] hover:border-[#f85149] hover:text-[#f85149] hover:bg-[#f851491a] transition-all uppercase tracking-widest">
+             class="w-full py-2.5 rounded-lg text-[10px] font-mono font-bold text-center border border-[#30363d] text-[#8b949e] hover:border-[#f85149] hover:text-[#f85149] transition-all uppercase tracking-widest">
             Export & Wipe System
           </a>
       </div>
     </aside>
-  </div> <div id="modal-overlay" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onclick="if(event.target===this) closeModal()">
+  </div> 
+
+  <div id="modal-overlay" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onclick="if(event.target===this) closeModal()">
     <div class="bg-[#161b22] border border-[#30363d] rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-fadeIn">
         <div class="flex justify-between items-center border-b border-[#30363d] pb-4">
           <h3 class="text-sm font-bold font-mono text-white flex items-center gap-2">
@@ -168,11 +182,6 @@
         <div class="space-y-2">
           <p class="text-[10px] font-mono text-[#8b949e] uppercase">Observed Vector</p>
           <code id="modal-payload" class="block bg-black p-4 text-[#f85149] rounded-xl border border-[#f85149]/30 break-all text-xs font-mono leading-relaxed"></code>
-        </div>
-        <div class="flex items-center gap-4 py-2">
-          <div class="flex-1 h-px bg-[#30363d]"></div>
-          <span class="text-[9px] font-mono text-[#484f58]">CRUCIBLE ENGINE V2</span>
-          <div class="flex-1 h-px bg-[#30363d]"></div>
         </div>
         <button onclick="closeModal()" class="w-full bg-[#30363d] hover:bg-[#3c444d] text-white py-2.5 rounded-lg text-xs font-mono font-bold transition-all">Close Investigation</button>
     </div>

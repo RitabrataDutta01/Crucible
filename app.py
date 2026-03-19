@@ -51,7 +51,7 @@ def scan():
     all_forms = results.get('forms', [])
     #sqli_findings = sqli.injector(all_forms, session)
     #xss_findings = XSS.injector(all_forms, session)
-    lfi_findings = lfi.injector(results, session)
+    lfi_findings = sqli.injector(all_forms, session) + XSS.injector(all_forms, session) + lfi.injector(results, session)
     total_findings = lfi_findings
 
     report_filename = f"scan_report_latest.json"
