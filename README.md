@@ -30,6 +30,9 @@ Crucible is a modular Dynamic Application Security Testing (DAST) framework desi
 - **Modern Development Stack**  
   Managed via the `uv` package manager for high-performance dependency handling and environment isolation.
 
+- **Local File Inclusion (LFI) Engine**  
+  Auditing URL parameters for directory traversal and sensitive file access.
+
 ---
 
 ## Technical Stack
@@ -165,7 +168,6 @@ Preview-
 
 The following modules are currently in development as part of the Crucible expansion roadmap:
 
-- **Local File Inclusion (LFI) Engine** — auditing URL parameters for directory traversal and sensitive file access.
 - **Header Security Auditor** — analysis of HTTP response headers for security misconfigurations (CSP, HSTS, X-Frame-Options).
 - **Machine Learning Integration** — implementation of a Naive Bayes classifier to improve detection accuracy and reduce false positives.
 
