@@ -156,6 +156,8 @@ Preview-
 ![Ongoing Scan Preview](./assets/ongoing.png)
 ---
 ![Results Dashboard Preview](./assets/results-dash.png)
+---
+![Connections](./assets/graph.png)
 
 ---
 
