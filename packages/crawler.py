@@ -71,15 +71,20 @@ def extract_links(soup, base_url):
 def filter_links(urls, parsed_urls, base_host):
 
     allowed_links = []
+    blacklist = ['logout', 'setup.php', '.pdf']
 
     for raw, pars in zip(urls, parsed_urls):
 
         if pars.hostname == base_host and not pars.fragment:
-            allowed_links.append(raw)
+            if not any(black in raw.lower() for black in blacklist):
+                allowed_links.append(raw)
 
     return allowed_links
 
 def crawl(start_url, session, max_depth=1):
+
+    if not start_url.startswith(('http://', 'https://')):
+        start_url = 'http://' + start_url
 
     visited = set()
     queue = deque([(start_url,0)])

