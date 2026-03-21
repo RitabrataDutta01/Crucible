@@ -140,9 +140,10 @@ def injector(forms, active_session):
                 print(f"[-] Scouting Error: {e}")
 
         if exploitable:
-            attacks = {executor.submit(check_Reflected_XSS, t): t for t in exploitable}
+            reflected_attacks = {executor.submit(check_Reflected_XSS, t): t for t in exploitable}
+            blind_attacks = {executor.submit(check_blind_XSS, t): t for t in exploitable}
 
-            for future in concurrent.futures.as_completed(attacks):
+            for future in concurrent.futures.as_completed(reflected_attacks):
 
                 try:
                     findings = future.result()
@@ -150,6 +151,12 @@ def injector(forms, active_session):
                         vulnerable_pages.extend(findings)
                 except Exception as e:
                     print(f"[-] Attack Thread Error: {e}")
+            
+            for future in concurrent.futures.as_completed(blind_attacks):
+                try:
+                    future.result()
+                except Exception as e:
+                    print(f"[-] Blind XSS Thread Error: {e}")
 
     return vulnerable_pages
 

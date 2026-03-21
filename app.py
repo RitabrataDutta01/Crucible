@@ -1,4 +1,3 @@
-from ctypes.util import test
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 from packages import crawler, sqli, XSS, lfi
@@ -106,27 +105,13 @@ def scan():
 
     filepath = os.path.join(REPORT_DIR, report_filename)
     
-    bxss_file = os.path.join(REPORT_DIR, "blind_xss_hits.json")
-    bxss_findings = []
-
-    if os.path.exists(bxss_file):
-        with open(bxss_file, 'r') as f:
-            bxss_findings = json.load(f)
-            
-    active_findings = total_findings + bxss_findings
 
     with open(filepath, 'w') as f:
-        json.dump(active_findings, f, indent=4)
-    
-    if os.path.exists(bxss_file):
-        try:
-            os.remove(bxss_file) 
-            print("[!] Blind XSS logs cleared and merged into main report.")
-        except Exception as e:
-            print(f"Cleanup Error: {e}")
+        json.dump(total_findings, f, indent=4)
+
 
     return render_template('index.html',
-                           results=active_findings,
+                           results=total_findings,
                            target=target_url,
                            reports=get_reports())
 
@@ -221,4 +206,5 @@ def bxss_callback(scan_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
