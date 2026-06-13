@@ -1,11 +1,13 @@
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify
+from pyparsing import results
 from packages import crawler, sqli, XSS, lfi
 import os, json, subprocess, io
 import google.generativeai as genai
 from flask import send_file
 import requests, sys
 from bs4 import BeautifulSoup
+from waitress import serve
 
 
 def resource_path(relative_path):
@@ -29,9 +31,11 @@ if not os.path.exists(REPORT_DIR):
 
 genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
 
-session = requests.Session()
+#session = requests.Session()
 
 def DVWA_login(base_url, username = "admin", password = "password"):
+    
+    session = requests.Session()
     
     if not base_url.startswith(('http://', 'https://')):
         base_url = 'http://' + base_url
@@ -54,7 +58,7 @@ def DVWA_login(base_url, username = "admin", password = "password"):
         'user_token': user_token
     }
     
-    r = session.post(login_url, data=payload)
+    r = session.post(login_url, data=payload, allow_redirects=True)
     
     if 'login.php' in r.url or 'Login failed' in r.text:
         print("[-] DVWA Login Failed: Check credentials and DVWA status.")
@@ -62,8 +66,12 @@ def DVWA_login(base_url, username = "admin", password = "password"):
     
     print(f"[+] DVWA Login Successful. {username}")
     
-    security_url = base_url.rstrip('/') + '/security.php'
-    session.post(security_url, data={'security': 'medium', 'seclev_submit': 'Submit'})
+    session.cookies.set('security', 'medium')
+    
+    home_url = base_url.rstrip('/') + '/index.php'
+    session.get(home_url)
+    
+    print("[DEBUG] Cookies:", session.cookies.get_dict())
     
     return session
 
@@ -80,9 +88,6 @@ def index():
 @app.route('/deep_scan', methods=['POST'])
 def scan():
 
-    if session is None:
-        return "Error: Could not authenticate with target. Check if DVWA is running.", 500
-
     target_url = request.form.get('target_url')
     
     if not target_url.startswith(('http://', 'https://')):
@@ -94,8 +99,18 @@ def scan():
     if authenticated_session is None:
         return "Error: Could not authenticate with DVWA. Check credentials and URL.", 500
 
-    results = crawler.crawl(target_url, authenticated_session)
+    crawl_start = target_url.rstrip('/') + '/index.php'
+    results = crawler.crawl(crawl_start, authenticated_session)
+    
+    print(f"[DEBUG] Forms found: {len(results.get('forms', []))}")
+    print(f"[DEBUG] Pages scanned: {results.get('scanned_pages', [])}")
+        
+    authenticated_session = DVWA_login(target_url, dvwa_user, dvwa_pass)
+    if authenticated_session is None:
+        return "Error: Session lost after crawl.", 500
+    print("[+] Re-authenticated before injection phase.")
     all_forms = results.get('forms', [])
+    print(authenticated_session)
     #sqli_findings = sqli.injector(all_forms, authenticated_session)
     #xss_findings = XSS.injector(all_forms, authenticated_session)
     lfi_findings = sqli.injector(all_forms, authenticated_session) + XSS.injector(all_forms, authenticated_session) + lfi.injector(results, authenticated_session)
@@ -205,6 +220,6 @@ def bxss_callback(scan_id):
     return "OK", 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    serve(app, host='0.0.0.0', port=5000)
 
 

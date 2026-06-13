@@ -108,6 +108,7 @@ def crawl(start_url, session, max_depth=1):
         visited.add(curr_url)
 
         page = fetch_page(curr_url, session)
+        print(f"[DEBUG CRAWL] Fetched: {curr_url} → landed on: {page.url if page else 'None'}")
 
         if not page or page.status_code != 200:
             continue
@@ -135,4 +136,5 @@ def crawl(start_url, session, max_depth=1):
     crawl_data["scanned_pages"] = list(crawl_data["scanned_pages"])
     crawl_data["discovered_endpoints"] = list(crawl_data["discovered_endpoints"])
 
+   
     return crawl_data
