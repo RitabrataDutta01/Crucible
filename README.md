@@ -1,192 +1,589 @@
-# Crucible: Multi-Engine Web Vulnerability Scanner
+<div align="center">
 
-Crucible is a modular Dynamic Application Security Testing (DAST) framework designed to identify and audit web-based vulnerabilities. Developed with a focus on automation, it integrates a web crawler with specialized injection engines, an AI-powered audit assistant, and a centralized Flask-based management dashboard.
+# 🔥 Crucible
 
-![Python](https://img.shields.io/badge/Python-3.10.19-blue?style=flat-square&logo=python)
-![Flask](https://img.shields.io/badge/Flask-2.x-black?style=flat-square&logo=flask)
-![Gemini](https://img.shields.io/badge/Gemini-2.5_Flash-orange?style=flat-square&logo=google)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
-![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)
+### Intelligent Web Vulnerability Assessment & Security Auditing Framework
 
----
+<img src="assets/welcome-dash.png" width="850">
 
-## Core Features
+<br>
 
-- **Automated Discovery**  
-  Implements a Breadth-First Search (BFS) crawler to map target domains and identify attack surfaces such as HTML forms and URL parameters.
+<p align="center">
+<img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python">
+<img src="https://img.shields.io/badge/Framework-Flask-black?style=for-the-badge&logo=flask">
+<img src="https://img.shields.io/badge/Domain-Web%20Security-red?style=for-the-badge">
+<img src="https://img.shields.io/badge/AI-Gemini-purple?style=for-the-badge">
+</p>
 
-- **SQL Injection Engine**  
-  Detects SQL injection vulnerabilities across multiple vectors: authentication bypass, error-based signature detection, and time-based blind injection. Runs candidates concurrently via a thread pool for faster coverage.
+</div>
 
-- **Cross-Site Scripting Engine**  
-  Identifies reflected XSS vulnerabilities by testing whether injected payloads are returned unescaped in server responses. Fully parallelized with `ThreadPoolExecutor`.
 
-- **AI Audit Assistant**  
-  Integrates Google Gemini 2.5 Flash as a Senior Security Auditor. After a scan, the AI analyses findings and returns technical remediation advice — including specific code-level fixes — rendered inline in the dashboard terminal.
+# 📖 Overview
 
-- **Centralized Reporting**  
-  A GitHub-style dark web dashboard for real-time scan monitoring, structured vulnerability output, and persistent JSON report history. Includes a secure Export & Wipe function that downloads the report and deletes it from disk in one action.
+**Crucible** is an automated web vulnerability assessment framework designed to assist security researchers, students, and penetration testers in identifying and understanding common web application vulnerabilities.
 
-- **Modern Development Stack**  
-  Managed via the `uv` package manager for high-performance dependency handling and environment isolation.
+The framework combines:
 
-- **Local File Inclusion (LFI) Engine**  
-  Auditing URL parameters for directory traversal and sensitive file access.
+- Automated reconnaissance
+- Web application crawling
+- Payload-driven vulnerability testing
+- Concurrent security analysis
+- Automated reporting
+- AI-assisted vulnerability explanation
 
----
 
-## Technical Stack
+Crucible follows a modular architecture where each component performs a specific responsibility in the security assessment workflow, allowing the framework to remain maintainable, scalable, and easy to extend.
 
-- **Backend:** Python 3.10.19, Flask
-- **AI Integration:** Google Gemini 2.5 Flash (`google-generativeai`)
-- **Package Management:** uv
-- **Scanning Engine:** lxml, BeautifulSoup4, `concurrent.futures`
-- **Frontend:** HTML5, Tailwind CSS, Vanilla JavaScript, Lucide Icons
-- **Environment:** Developed on ASUS TUF F17, compatible with Windows and Linux/WSL environments
 
 ---
 
-## Installation
+# ✨ Features
 
-This project requires **Python 3.10.19**, the **uv package manager**, and a **Google Gemini API key**.
 
-**1. Repository Setup**
+## 🌐 Automated Web Reconnaissance
+
+Crucible begins an assessment by mapping the target application's attack surface.
+
+The crawler identifies:
+
+- Internal webpages
+- Available endpoints
+- HTML forms
+- Input parameters
+- HTTP request methods
+- Authenticated application routes
+
+
+This information is then passed to vulnerability analysis modules for further testing.
+
+
+---
+
+# 🛡️ Vulnerability Assessment Modules
+
+
+## 💉 SQL Injection Scanner
+
+**Module:**
+
+```
+packages/sqli.py
+```
+
+The SQL injection engine evaluates discovered input parameters for database-related vulnerabilities.
+
+### Detection Capabilities
+
+- Authentication bypass SQL injection
+- Error-based SQL injection
+- Time-based blind SQL injection
+- Response behaviour comparison
+- Database error signature analysis
+- Timing-based verification
+
+
+The module uses external payload databases, allowing security testing patterns to be updated without modifying the core scanning logic.
+
+
+---
+
+## 🕷️ Cross-Site Scripting Scanner
+
+**Module:**
+
+```
+packages/XSS.py
+```
+
+The XSS engine identifies unsafe handling of user-controlled input that may result in client-side script execution.
+
+### Detection Capabilities
+
+- Reflected XSS detection
+- Blind XSS testing
+- HTML context analysis
+- Attribute injection analysis
+- JavaScript context analysis
+- Payload reflection verification
+
+
+The scanner analyses how input is reflected by the application and determines whether proper output handling mechanisms are implemented.
+
+
+---
+
+# 🤖 AI-Powered Security Analysis
+
+Crucible integrates Google's Gemini AI to provide deeper explanations of discovered vulnerabilities.
+
+The AI analysis system provides:
+
+- Vulnerability explanations
+- Impact analysis
+- Payload behaviour explanation
+- Recommended security fixes
+- Secure coding guidance
+
+
+Example:
+
+```
+Finding:
+Reflected XSS
+
+Impact:
+Attacker-controlled JavaScript execution
+
+Recommendation:
+Implement context-aware output encoding
+and proper input validation.
+```
+
+
+---
+
+# 🏗️ Architecture Overview
+
+
+```
+                         User
+                          |
+                          |
+                  Flask Dashboard
+                          |
+                          |
+                       app.py
+                          |
+                          |
+              Authentication Management
+                          |
+                          |
+                    crawler.py
+                          |
+                          |
+             Attack Surface Discovery
+                          |
+              ---------------------
+              |                   |
+              ↓                   ↓
+           sqli.py             XSS.py
+              |
+              |
+     Vulnerability Findings
+              |
+              |
+       Report Generation
+              |
+              |
+        Gemini AI Analysis
+```
+
+
+---
+
+# 📂 Project Structure
+
+
+```
+Crucible/
+
+│
+├── app.py
+│   └── Main Flask application controller
+│
+├── forge.py
+│   └── Application launcher/helper utilities
+│
+├── config.py
+│   └── Configuration management
+│
+├── packages/
+│
+│   ├── crawler.py
+│   │   └── Web discovery and endpoint extraction
+│   │
+│   ├── sqli.py
+│   │   └── SQL Injection detection engine
+│   │
+│   └── XSS.py
+│       └── Cross-Site Scripting detection engine
+│
+├── data/
+│   └── Security payload databases and signatures
+│
+├── templates/
+│   └── Flask HTML templates
+│
+├── static/
+│   └── CSS and JavaScript resources
+│
+├── reports/
+│   └── Generated vulnerability reports
+│
+└── assets/
+    └── Documentation images
+```
+
+
+---
+
+# 🧩 System Architecture & Module Overview
+
+Crucible follows a modular security assessment architecture where every component is responsible for a dedicated stage of the vulnerability analysis workflow.
+
+This separation improves:
+
+- Maintainability
+- Scalability
+- Debugging
+- Future feature expansion
+
+
+---
+
+# Core Application Layer
+
+
+## `app.py` — Application Controller
+
+The `app.py` module acts as the central orchestration layer of Crucible.
+
+It connects the dashboard, authentication system, crawler, vulnerability scanners, reporting system, and AI analysis engine.
+
+### Responsibilities
+
+- Initializes the Flask application
+- Handles dashboard requests
+- Accepts target information
+- Creates authenticated sessions
+- Coordinates security scans
+- Collects vulnerability findings
+- Generates reports
+- Sends findings to Gemini AI
+
+
+---
+
+# Discovery Layer
+
+
+## `crawler.py` — Web Application Discovery Engine
+
+The crawler performs the reconnaissance stage of the security assessment.
+
+Its purpose is to discover possible attack surfaces before vulnerability testing begins.
+
+
+### Capabilities
+
+- Website crawling
+- Internal endpoint discovery
+- Form extraction
+- Parameter identification
+- HTTP method detection
+- Authenticated crawling
+
+
+### Workflow
+
+```
+Target Application
+
+        ↓
+
+Crawler
+
+        ↓
+
+Discovered URLs + Forms + Parameters
+
+        ↓
+
+Security Testing Modules
+```
+
+
+---
+
+# Vulnerability Analysis Layer
+
+
+## `sqli.py` — SQL Injection Assessment Engine
+
+The SQL injection module analyses discovered parameters for database vulnerabilities.
+
+
+### Responsibilities
+
+- Inject SQL payloads
+- Compare application responses
+- Detect database error behaviour
+- Analyse response delays
+- Verify potential vulnerabilities
+
+
+---
+
+## `XSS.py` — Cross-Site Scripting Analysis Engine
+
+The XSS module analyses whether user-controlled input can execute unsafe client-side code.
+
+
+### Responsibilities
+
+- Generate XSS payloads
+- Analyse reflection behaviour
+- Identify injection contexts
+- Verify potential execution paths
+
+
+---
+
+# Configuration Layer
+
+
+## `config.py`
+
+The configuration module manages application settings and environment-based values.
+
+
+### Responsibilities
+
+- API configuration
+- Runtime settings
+- Scanner parameters
+- Environment management
+
+
+---
+
+# Data Layer
+
+
+## `data/`
+
+The data directory stores external security intelligence used by Crucible.
+
+Contains:
+
+- SQL injection payload collections
+- XSS payload libraries
+- Error signatures
+- Security testing datasets
+
+
+Keeping security data separate from application logic allows payloads and signatures to evolve independently.
+
+
+---
+
+# Presentation Layer
+
+
+## `templates/`
+
+Contains Flask HTML templates used to build the dashboard interface.
+
+Provides:
+
+- Scan configuration pages
+- Results display
+- User interaction components
+
+
+---
+
+## `static/`
+
+Contains frontend resources.
+
+Includes:
+
+- CSS styling
+- JavaScript functionality
+- Dashboard assets
+
+
+---
+
+# 🔄 Complete Scan Workflow
+
+
+```
+1. User enters target application
+
+              ↓
+
+2. Authentication setup
+
+              ↓
+
+3. Website crawling
+
+              ↓
+
+4. Endpoint discovery
+
+              ↓
+
+5. SQL Injection analysis
+
+              ↓
+
+6. XSS vulnerability analysis
+
+              ↓
+
+7. Findings collection
+
+              ↓
+
+8. Report generation
+
+              ↓
+
+9. Gemini AI security explanation
+```
+
+
+---
+
+# ⚙️ Installation
+
+
+## Clone Repository
+
 ```bash
 git clone https://github.com/RitabrataDutta01/Crucible.git
-cd crucible
+
+cd Crucible
 ```
 
-**2. Environment Configuration**
-```bash
-uv venv
 
-# Windows:
-.venv\Scripts\activate
-
-# Linux / macOS:
-source .venv/bin/activate
-
-uv sync
-```
-
-**3. Dependencies**
-```bash
-uv add flask requests beautifulsoup4 lxml python-dotenv google-generativeai
-```
-
-**4. API Key Setup**
-
-The AI Auditor requires a Google Gemini API key set as an environment variable:
+## Install Dependencies
 
 ```bash
-# Linux / macOS:
-export GOOGLE_API_KEY="your_key_here"
-
-# Windows (PowerShell):
-$env:GOOGLE_API_KEY="your_key_here"
+pip install -r requirements.txt
 ```
 
----
-
-## Usage
-
-1. Launch the application:
-    ```bash
-    uv run python app.py
-    ```
-2. Access the dashboard at `http://127.0.0.1:5000`.
-3. Input the target URL and initiate a Deep Scan.
-4. Review the findings grid for identified endpoints, payloads, and severity ratings.
-5. Open the **AI Auditor** panel and click **Fetch AI Insight** to get Gemini-powered remediation advice for your findings.
-6. Use **Export & Wipe** to download the report as JSON and securely delete it from the server.
 
 ---
 
-## Project Structure
+# 🔑 Environment Configuration
 
-```text
-crucible/
-├── app.py              # Application entry point, Flask routing, Gemini integration
-├── packages/           # Modular vulnerability engines
-│   ├── crawler.py      # BFS web crawling and form extraction
-│   ├── sqli.py         # Multi-vector SQLi detection (threaded)
-│   └── XSS.py          # Reflected XSS detection (threaded)
-├── static/
-│   ├── css/style.css   # GitHub-style dark theme
-│   └── js/main.js      # Scan progress, AI bridge, modal logic
-├── templates/
-│   └── index.html      # Main dashboard (Tailwind + Lucide)
-├── data/               # Security payloads and signature data
-├── reports/            # JSON logs of completed scans
-└── pyproject.toml      # Dependency and project metadata
+
+Crucible requires a Gemini API key for AI-powered vulnerability analysis.
+
+
+### Linux
+
+```bash
+export GOOGLE_API_KEY="your_api_key"
 ```
 
----
 
-## Finding Schema
+### Windows
 
-Every finding produced by the injection engines conforms to a unified schema to ensure consistent rendering across the dashboard and report files:
-
-```json
-{
-  "vulnerability type": "Reflected XSS",
-  "url":      "http://target.com/page",
-  "payload":  "<script>alert(1)</script>",
-  "severity": "High",
-  "evidence": "Payload reflected verbatim in response from http://target.com/search",
-  "endpoint": "http://target.com/search",
-  "method":   "GET"
-}
+```powershell
+setx GOOGLE_API_KEY "your_api_key"
 ```
 
+
 ---
 
-## Safe Test Targets
+# ▶️ Running Crucible
 
-> Only scan applications you own or have explicit written permission to test.
 
-| Target | URL |
+Start the application:
+
+```bash
+python app.py
+```
+
+
+Open the dashboard:
+
+```
+http://localhost:5000
+```
+
+
+---
+
+# 📸 Screenshots
+
+
+## Dashboard
+
+<img src="assets/welcome-dash.png">
+
+
+## Scan Progress
+
+<img src="assets/ongoing.png">
+
+
+## Results Dashboard
+
+<img src="assets/results-dash.png">
+
+
+---
+
+# 🛠️ Technology Stack
+
+
+| Technology | Purpose |
 |---|---|
-| Altoro Mutual (IBM) | `http://demo.testfire.net` |
-| VulnWeb | `http://testphp.vulnweb.com` |
+| Python | Core development language |
+| Flask | Web application framework |
+| BeautifulSoup | HTML parsing |
+| Requests | HTTP communication |
+| ThreadPoolExecutor | Concurrent scanning |
+| Gemini AI | Vulnerability explanation |
+| JSON | Payload storage |
+| HTML/CSS/JS | Dashboard interface |
+
 
 ---
 
-Preview-
+# 🚀 Future Improvements
 
-![Welcome Dashboard Preview](./assets/welcome-dash.png)
----
-![Ongoing Scan Preview](./assets/ongoing.png)
----
-![Results Dashboard Preview](./assets/results-dash.png)
----
-![Connections](./assets/graph.png)
 
----
+- [ ] CVSS vulnerability scoring
+- [ ] PDF security reports
+- [ ] OWASP Top 10 expansion
+- [ ] Improved vulnerability verification
+- [ ] Plugin-based scanner architecture
+- [ ] API security testing
+- [ ] Advanced authentication support
 
-## Ongoing Development
-
-The following modules are currently in development as part of the Crucible expansion roadmap:
-
-- **Header Security Auditor** — analysis of HTTP response headers for security misconfigurations (CSP, HSTS, X-Frame-Options).
-- **Machine Learning Integration** — implementation of a Naive Bayes classifier to improve detection accuracy and reduce false positives.
 
 ---
 
-## Note
+# ⚠️ Disclaimer
 
-If using the "Crucible-Scanner.exe" from the releases, after double clicking on the exe file please go to your web browser and go to localhost:5000 and then use.
+
+Crucible is intended for:
+
+✅ Educational purposes  
+✅ Authorized penetration testing  
+✅ Security research  
+
+
+Only scan applications that you have explicit permission to test.
+
+The author is not responsible for misuse of this software.
+
 
 ---
 
-## Disclaimer
+# 👨‍💻 Author
 
-Crucible is intended for educational purposes and authorized penetration testing only. Unauthorized use of this tool against systems without explicit permission is illegal. The developer assumes no liability for misuse.
 
----
+## Ritabrata Dutta
 
-## Author
+Cybersecurity & Software Development Enthusiast
 
-**Ritabrata Dutta**  
-Second-year B.Tech Student, Computer Science & Engineering  
-Adamas University, West Bengal, India
+
+⭐ If you find Crucible useful, consider starring the repository.
