@@ -80,10 +80,18 @@ def prime_dummy(candidate):
         if not input_name:
             continue
 
-        if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
-            safe_data[input_name] = 'Dummy'
-        else:
-            safe_data[input_name] = cd.get('value')
+        # if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
+        #     safe_data[input_name] = 'Dummy'
+        if cd.get('name'):
+
+            if cd.get('type') == 'email':
+                safe_data[input_name] = "invalid_user_test@example.com"
+            if cd.get('type') == 'password':
+                safe_data[input_name] = "InvalidPass@123"
+            elif cd.get('type') in ['text', 'search', 'number', 'textarea']:
+                safe_data[input_name] = "invalid_user_test"
+            else:
+                safe_data[input_name] = cd.get('value')
 
     return safe_data
 
@@ -105,6 +113,7 @@ def set_baselines(forms):
                 candidate['response_length_baseline'] = len(response.text)
                 candidate['response_code_baseline'] = response.status_code
                 candidate['time_elapsed'] = response.elapsed.total_seconds()
+                candidate['baseline_endpoint'] = response.url
                 
                 durations = []
                 for _ in range(3):
@@ -124,6 +133,7 @@ def set_baselines(forms):
                 candidate['server_delay_baseline'] = 0
                 candidate['time_mean'] = 0
                 candidate['jitter'] = 0
+                candidate['baseline_endpoint'] = ''
             
             
         elif method == 'get':
@@ -134,6 +144,7 @@ def set_baselines(forms):
                 candidate['response_length_baseline'] = len(response.text)
                 candidate['response_code_baseline'] = response.status_code
                 candidate['time_elapsed'] = response.elapsed.total_seconds()
+                candidate['baseline_endpoint'] = response.url
                 
                 durations = []
                 for _ in range(3):
@@ -153,6 +164,7 @@ def set_baselines(forms):
                 candidate['server_delay_baseline'] = 0
                 candidate['time_mean'] = 0
                 candidate['jitter'] = 0
+                candidate['baseline_endpoint'] = ''
                 
     return candidates
 
@@ -175,7 +187,7 @@ def prepare_Input_Data(candidate, load):
 
     return data
 
-def send_Request(action, method, data, session = None):
+def send_Request(action, method, data, session= None):
 
     try:
         caller = session if session else requests
@@ -197,6 +209,9 @@ def check_Auth_Bypass(candidate):
     arsenal = PAYLOADS_DB.get('auth_bypass', [])
     findings = []
 
+    if(candidate['baseline_endpoint'] == ''):
+        return findings
+
     for load in arsenal:
 
         print(f"  [>] Testing payload auth")
@@ -214,7 +229,10 @@ def check_Auth_Bypass(candidate):
         success_keywords = ["logout", "sign off", "my account", "welcome"]
         found_success = any(word in response.text.lower() for word in success_keywords)
 
-        if response.status_code == 200 and (change or found_success):
+        curr_endpoint = response.url
+        baseline_endpoint = candidate.get('baseline_endpoint')
+
+        if response.status_code == 200 and (change or found_success) and (curr_endpoint != baseline_endpoint):
             finding = {
                 'url' : candidate['found on'],
                 'vulnerability type': 'Auth Bypass SQLI',
@@ -229,7 +247,7 @@ def check_Auth_Bypass(candidate):
         elif response.status_code == 500:
             finding = {
                 'url' : candidate['found on'],
-                'vulnerability type': 'Auth Bypass SQLI',
+                'vulnerability type': 'SQL Syntax Error',
                 'payload': load,
                 'severity': 'Critical',
                 'evidence': f"Potential server crash(500) on {candidate.get('action', 'target')} using payload: {load}",
@@ -244,7 +262,6 @@ def check_Error_Based(candidate):
 
     arsenal = FUZZDB_ARSENAL
     findings = []
-    unique_hits = {}
 
     for load in arsenal:
 
@@ -257,19 +274,17 @@ def check_Error_Based(candidate):
         if response is None:
             continue
 
-        if any(error.lower() in response.text.lower() for error in ERROR_SIGNATURES):
-            if candidate['found on'] not in unique_hits:
-                unique_hits[candidate['found on']] = 1
-                finding = {
+        if any(error.lower() in response.text.lower() for error in ERROR_SIGNATURES) or (response.status_code == 500):
+            finding = {
                     'url' : candidate['found on'],
                     'vulnerability type': 'Error Based SQLI',
                     'payload': load,
                     'severity': 'Critical',
                     'evidence': f"Server error by {candidate['found on']}",
                     'status': response.status_code
-                }
-                findings.append(finding)
-                break
+            }
+            findings.append(finding)
+            break
 
     return findings
 

@@ -1,6 +1,5 @@
 import requests, json, time, os, concurrent.futures, uuid
 from datetime import datetime
-from config import Config
 
 session = None
 probe = """crucible'"><;"""

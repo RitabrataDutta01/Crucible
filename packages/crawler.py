@@ -20,7 +20,7 @@ def extract_forms(soup, curr_url):
         action_url = urljoin(curr_url, raw_action)
         method = form.get('method', 'get').lower()
 
-        input_list=[]
+        input_list = []
         for input_tag in form.find_all(['input', 'textarea', 'button', 'select']):
 
             input_name = input_tag.get('name', '')
@@ -35,10 +35,10 @@ def extract_forms(soup, curr_url):
             input_list.append(input_data)
 
         form_data = {
-            'found on' : curr_url,
-            'action' : action_url,
-            'method' : method,
-            'inputs' : input_list
+            'found on': curr_url,
+            'action': action_url,
+            'method': method,
+            'inputs': input_list
         }
 
         all_Forms.append(form_data)
@@ -61,17 +61,15 @@ def extract_links(soup, base_url):
     url = [urljoin(base_url, link) for link in url]
     parsed = [urlparse(link) for link in url]
 
-
     allowed_links = filter_links(url, parsed, base_host)
 
     return allowed_links
 
 
-
 def filter_links(urls, parsed_urls, base_host):
 
     allowed_links = []
-    blacklist = ['logout', 'setup.php', '.pdf']
+    blacklist = ['logout', '.pdf']
 
     for raw, pars in zip(urls, parsed_urls):
 
@@ -87,13 +85,13 @@ def crawl(start_url, session, max_depth=1):
         start_url = 'http://' + start_url
 
     visited = set()
-    queue = deque([(start_url,0)])
+    queue = deque([(start_url, 0)])
     found_links = set()
 
     crawl_data = {
-        'scanned_pages' : set(),
-        'discovered_endpoints' : set(),
-        'forms' : []
+        'scanned_pages': set(),
+        'discovered_endpoints': set(),
+        'forms': []
     }
 
     while queue:
@@ -112,10 +110,6 @@ def crawl(start_url, session, max_depth=1):
 
         if not page or page.status_code != 200:
             continue
-        
-        if "login.php" in page.url and "login.php" not in curr_url:
-            print(f"[!] Warning: Session expired or invalid. Redirected to login.")
-            continue
 
         cleaned_html = page.content.decode('utf-8', errors='replace')
         soup = BeautifulSoup(cleaned_html, 'lxml')
@@ -131,10 +125,9 @@ def crawl(start_url, session, max_depth=1):
 
         for link in new_links:
             if link not in visited:
-                queue.append((link, depth+1))
+                queue.append((link, depth + 1))
 
     crawl_data["scanned_pages"] = list(crawl_data["scanned_pages"])
     crawl_data["discovered_endpoints"] = list(crawl_data["discovered_endpoints"])
 
-   
     return crawl_data

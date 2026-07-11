@@ -1,28 +1,11 @@
-from datetime import datetime
 from flask import Flask, render_template, request, jsonify
-from pyparsing import results
-from packages import crawler, sqli, XSS, lfi
+from packages import crawler, sqli, XSS
 import os, json, subprocess, io
 import google.generativeai as genai
 from flask import send_file
-import requests, sys
-from waitress import serve
+import requests
 
-
-def resource_path(relative_path):
-    
-    try:
-        
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
-TEMPLATE_DIR = resource_path('templates')
-STATIC_DIR = resource_path('static')
-DATA_DIR = resource_path('data')
-
-app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
+app = Flask(__name__)
 REPORT_DIR = 'reports'
 
 if not os.path.exists(REPORT_DIR):
@@ -30,8 +13,7 @@ if not os.path.exists(REPORT_DIR):
 
 genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
 
-#session = requests.Session()
-
+session = requests.Session()
 
 def get_reports():
     if not os.path.exists(REPORT_DIR):
@@ -45,29 +27,30 @@ def index():
 
 @app.route('/deep_scan', methods=['POST'])
 def scan():
-    target_url = request.form.get('target_url')
-    if not target_url.startswith(('http://', 'https://')):
-        target_url = 'http://' + target_url
 
-    session = requests.Session()
+    if session is None:
+        return "Error: Could not authenticate with target. Check if DVWA is running.", 500
+
+    target_url = request.form.get('target_url')
 
     results = crawler.crawl(target_url, session)
-
-    print(f"[DEBUG] Forms found: {len(results.get('forms', []))}")
-    print(f"[DEBUG] Pages scanned: {len(results.get('scanned_pages', []))}")
-
     all_forms = results.get('forms', [])
-    total_findings = (
-        sqli.injector(all_forms, session)
-        # + XSS.injector(all_forms, session)
-        # + lfi.injector(results, session)
-    )
+    sqli_findings = sqli.injector(all_forms, session)
+    xss_findings = XSS.injector(all_forms, session)
+    total_findings = sqli_findings + xss_findings
 
-    filepath = os.path.join(REPORT_DIR, "scan_report_latest.json")
+    report_filename = f"scan_report_latest.json"
+
+    filepath = os.path.join(REPORT_DIR, report_filename)
+
     with open(filepath, 'w') as f:
         json.dump(total_findings, f, indent=4)
 
-    return render_template('index.html', results=total_findings, target=target_url, reports=get_reports())
+    return render_template('index.html',
+                           results=total_findings,
+                           target=target_url,
+                           reports=get_reports())
+
 
 @app.route('/get_ai_analysis')
 def get_ai_analysis():
@@ -124,40 +107,10 @@ def download_report(filename):
         download_name=filename
     )
 
-@app.route('/bxss/<scan_id>')
-def bxss_callback(scan_id):
-    
-    victim_data = {
-        "timestamp": str(datetime.now()),
-        "scan_id": scan_id,
-        "victim_ip": request.remote_addr,
-        "user_agent": request.headers.get('User-Agent'),
-        "referrer": request.headers.get('Referer'),
-        "vulnerability": "Blind XSS verified"
-    }
-    
-    try:
-        report_path = os.path.join(REPORT_DIR, "blind_xss_hits.json")
-        hits = []
-        
-        if os.path.exists(report_path):
-            with open(report_path, 'r') as f:
-                try:
-                    hits = json.load(f)
-                except json.JSONDecodeError:
-                    hits = []
-        
-        hits.append(victim_data)
-        with open(report_path, 'w') as f:
-            json.dump(hits, f, indent=4)
-
-    except Exception as e:
-        print(f"[!] Error logging Blind XSS: {e}")
-
-    print(f"\n[🔥] BLIND XSS HIT! ID: {scan_id} from {request.remote_addr}")
-    return "OK", 200
-
 if __name__ == '__main__':
-    serve(app, host='0.0.0.0', port=5000)
+    app.run(debug=True)
+
+
+
 
 

@@ -20,7 +20,7 @@ def send_request(urls):
     url = urls['url'] 
     try:
         response = active_session.get(url, timeout=25)
-        response.raise_for_status()
+        
         return {
             "response": response,
             "payload" : urls['payload'],
@@ -28,9 +28,6 @@ def send_request(urls):
         }
     except requests.exceptions.RequestException as e:
         print(f"[-] Request to {url} failed: {e}")
-        return None
-    except requests.exceptions.Timeout:
-        print(f"[-] Request to {url} timed out.")
         return None
     except Exception as e:
         print(f"[-] An error occurred while requesting {url}: {e}")
@@ -64,6 +61,12 @@ def primer(candidate):
                 })
                 
     return url_list
+
+# def set_baselines(from):
+#
+#     try:
+#
+#         response = sess
 
 
 def injector(forms, session):
