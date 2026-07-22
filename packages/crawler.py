@@ -3,10 +3,11 @@ import requests
 from bs4 import BeautifulSoup
 import lxml
 from urllib.parse import urljoin, urlparse
+from config import ScanConfig
 
 
 headers = {
-    "User-Agent": "Mozilla/5.0"
+    "User-Agent": ScanConfig.USER_AGENT
 }
 
 
@@ -20,7 +21,7 @@ def extract_forms(soup, curr_url):
         action_url = urljoin(curr_url, raw_action)
         method = form.get('method', 'get').lower()
 
-        input_list = []
+        input_list=[]
         for input_tag in form.find_all(['input', 'textarea', 'button', 'select']):
 
             input_name = input_tag.get('name', '')
@@ -35,10 +36,10 @@ def extract_forms(soup, curr_url):
             input_list.append(input_data)
 
         form_data = {
-            'found on': curr_url,
-            'action': action_url,
-            'method': method,
-            'inputs': input_list
+            'found_on' : curr_url,
+            'action' : action_url,
+            'method' : method,
+            'inputs' : input_list
         }
 
         all_Forms.append(form_data)
@@ -47,7 +48,7 @@ def extract_forms(soup, curr_url):
 
 def fetch_page(url, session):
     try:
-        webpage = session.get(url, headers=headers, timeout=10)
+        webpage = session.get(url, headers=headers, timeout=ScanConfig.TIMEOUT)
         return webpage
     except Exception as e:
         print(f"[-] Error fetching {url}: {e}")
@@ -61,37 +62,36 @@ def extract_links(soup, base_url):
     url = [urljoin(base_url, link) for link in url]
     parsed = [urlparse(link) for link in url]
 
+
     allowed_links = filter_links(url, parsed, base_host)
 
     return allowed_links
 
 
+
 def filter_links(urls, parsed_urls, base_host):
 
     allowed_links = []
-    blacklist = ['logout', '.pdf']
 
     for raw, pars in zip(urls, parsed_urls):
 
         if pars.hostname == base_host and not pars.fragment:
-            if not any(black in raw.lower() for black in blacklist):
-                allowed_links.append(raw)
+            allowed_links.append(raw)
 
     return allowed_links
 
-def crawl(start_url, session, max_depth=1):
-
-    if not start_url.startswith(('http://', 'https://')):
-        start_url = 'http://' + start_url
+def crawl(start_url, session, max_depth=None):
+    if max_depth is None:
+        max_depth = ScanConfig.CRAWL_MAX_DEPTH
 
     visited = set()
-    queue = deque([(start_url, 0)])
+    queue = deque([(start_url,0)])
     found_links = set()
 
     crawl_data = {
-        'scanned_pages': set(),
-        'discovered_endpoints': set(),
-        'forms': []
+        'scanned_pages' : set(),
+        'discovered_endpoints' : set(),
+        'forms' : []
     }
 
     while queue:
@@ -106,10 +106,15 @@ def crawl(start_url, session, max_depth=1):
         visited.add(curr_url)
 
         page = fetch_page(curr_url, session)
-        print(f"[DEBUG CRAWL] Fetched: {curr_url} → landed on: {page.url if page else 'None'}")
 
         if not page or page.status_code != 200:
             continue
+        
+        if page.url != curr_url:
+            redirected_to = page.url.lower()
+            if any(kw in redirected_to for kw in ScanConfig.SESSION_EXPIRY_KEYWORDS):
+                print(f"[!] Warning: Possible session expiry — redirected to {page.url}")
+                continue
 
         cleaned_html = page.content.decode('utf-8', errors='replace')
         soup = BeautifulSoup(cleaned_html, 'lxml')
@@ -125,7 +130,7 @@ def crawl(start_url, session, max_depth=1):
 
         for link in new_links:
             if link not in visited:
-                queue.append((link, depth + 1))
+                queue.append((link, depth+1))
 
     crawl_data["scanned_pages"] = list(crawl_data["scanned_pages"])
     crawl_data["discovered_endpoints"] = list(crawl_data["discovered_endpoints"])

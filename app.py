@@ -1,41 +1,20 @@
-from datetime import datetime
 from flask import Flask, render_template, request, jsonify
-from pyparsing import results
-from packages import crawler, sqli, XSS, lfi
-import os, json, subprocess, io
+from packages import crawler, sqli, XSS
+import os, json, io
 import google.generativeai as genai
 from flask import send_file
-import requests, sys
-from waitress import serve
+import requests
 
-
-def resource_path(relative_path):
-    
-    try:
-        
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
-TEMPLATE_DIR = resource_path('templates')
-STATIC_DIR = resource_path('static')
-DATA_DIR = resource_path('data')
-
-app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
-REPORT_DIR = 'reports'
+app = Flask(__name__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+REPORT_DIR = os.path.join(BASE_DIR, 'reports')
 
 if not os.path.exists(REPORT_DIR):
     os.makedirs(REPORT_DIR)
 
 genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
 
-#session = requests.Session()
-
-
 def get_reports():
-    if not os.path.exists(REPORT_DIR):
-        os.makedirs(REPORT_DIR)
     files = sorted(os.listdir(REPORT_DIR), reverse=True)
     return [f for f in files if f.endswith('.json')]
 
@@ -45,29 +24,35 @@ def index():
 
 @app.route('/deep_scan', methods=['POST'])
 def scan():
+
     target_url = request.form.get('target_url')
-    if not target_url.startswith(('http://', 'https://')):
-        target_url = 'http://' + target_url
+    auth_cookies = request.form.get('auth_cookies', '')
 
-    session = requests.Session()
+    scan_session = requests.Session()
+    for line in auth_cookies.strip().split('\n'):
+        line = line.strip()
+        if '=' in line and line:
+            name, value = line.split('=', 1)
+            scan_session.cookies.set(name.strip(), value.strip())
 
-    results = crawler.crawl(target_url, session)
-
-    print(f"[DEBUG] Forms found: {len(results.get('forms', []))}")
-    print(f"[DEBUG] Pages scanned: {len(results.get('scanned_pages', []))}")
-
+    results = crawler.crawl(target_url, scan_session)
     all_forms = results.get('forms', [])
-    total_findings = (
-        sqli.injector(all_forms, session)
-        # + XSS.injector(all_forms, session)
-        # + lfi.injector(results, session)
-    )
+    sqli_findings = sqli.injector(all_forms, scan_session)
+    xss_findings = XSS.injector(all_forms, scan_session)
+    total_findings = sqli_findings + xss_findings
 
-    filepath = os.path.join(REPORT_DIR, "scan_report_latest.json")
+    report_filename = f"scan_report_latest.json"
+
+    filepath = os.path.join(REPORT_DIR, report_filename)
+
     with open(filepath, 'w') as f:
         json.dump(total_findings, f, indent=4)
 
-    return render_template('index.html', results=total_findings, target=target_url, reports=get_reports())
+    return render_template('index.html',
+                           results=total_findings,
+                           target=target_url,
+                           reports=get_reports())
+
 
 @app.route('/get_ai_analysis')
 def get_ai_analysis():
@@ -87,9 +72,8 @@ def get_ai_analysis():
         model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = (
             f"You are a Senior Security Auditor. Analyze these specific findings: {json.dumps(report_data[:5])}. "
-            "For each, explain: 1. Why this payload works on this URL. 2. The specific line of code fix (e.g., Prepared Statements). ",
-            "Keep it technical and concise for a terminal output. 3. Generate a PHP/JS/Python code block needed to fix the vulnerability.",
-            "4. Rate the severity (Low/Medium/High/Critical)."
+            "For each, explain: 1. Why this payload works on this URL. 2. The specific line of code fix (e.g., Prepared Statements). "
+            "Keep it technical and concise for a terminal output."
         )
         response = model.generate_content(prompt)
         return jsonify({"analysis": response.text})
@@ -100,13 +84,15 @@ def get_ai_analysis():
 @app.route('/view_report/<filename>')
 def view_report(filename):
     filepath = os.path.join(REPORT_DIR, filename)
+    if not os.path.exists(filepath):
+        return "Report not found", 404
     with open(filepath, 'r') as f:
         data = json.load(f)
     return render_template('index.html', results=data, target=filename)
 
 @app.route('/download/<filename>')
 def download_report(filename):
-    file_path = os.path.abspath(os.path.join(REPORT_DIR, filename))
+    file_path = os.path.join(REPORT_DIR, filename)
     if not os.path.exists(file_path):
         return "Report not found", 404
     with open(file_path, 'rb') as f:
@@ -117,6 +103,7 @@ def download_report(filename):
     except Exception as e:
         print(f"Cleanup Error: {e}")
 
+        # 3. Send the RAM copy to the browser
     return send_file(
         io.BytesIO(file_data),
         mimetype='application/json',
@@ -124,40 +111,5 @@ def download_report(filename):
         download_name=filename
     )
 
-@app.route('/bxss/<scan_id>')
-def bxss_callback(scan_id):
-    
-    victim_data = {
-        "timestamp": str(datetime.now()),
-        "scan_id": scan_id,
-        "victim_ip": request.remote_addr,
-        "user_agent": request.headers.get('User-Agent'),
-        "referrer": request.headers.get('Referer'),
-        "vulnerability": "Blind XSS verified"
-    }
-    
-    try:
-        report_path = os.path.join(REPORT_DIR, "blind_xss_hits.json")
-        hits = []
-        
-        if os.path.exists(report_path):
-            with open(report_path, 'r') as f:
-                try:
-                    hits = json.load(f)
-                except json.JSONDecodeError:
-                    hits = []
-        
-        hits.append(victim_data)
-        with open(report_path, 'w') as f:
-            json.dump(hits, f, indent=4)
-
-    except Exception as e:
-        print(f"[!] Error logging Blind XSS: {e}")
-
-    print(f"\n[🔥] BLIND XSS HIT! ID: {scan_id} from {request.remote_addr}")
-    return "OK", 200
-
 if __name__ == '__main__':
-    serve(app, host='0.0.0.0', port=5000)
-
-
+    app.run(debug=True)

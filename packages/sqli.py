@@ -1,65 +1,39 @@
-import json, requests, os, time, concurrent.futures
-from datetime import datetime
-import numpy as np
+import json, os, concurrent.futures
+from .utils import is_real_endpoint, is_actionable, prepare_input_data, send_request, DATA_DIR
+from config import ScanConfig
 
 active_session = None
 
 try:
-    with open('data/payloads.json', 'r') as f:
+    with open(os.path.join(DATA_DIR, 'payloads.json'), 'r') as f:
         PAYLOADS_DB = json.load(f)
 except FileNotFoundError:
     PAYLOADS_DB = {'auth_bypass': [], 'time_based': []}
     print("[-] Warning: data/payloads.json not found.")
 
 try:
-    with open('data/fuzzdb_sqli_arsenal.json', 'r') as f:
+    with open(os.path.join(DATA_DIR, 'fuzzdb_sqli_arsenal.json'), 'r') as f:
         FUZZDB_ARSENAL = [item['payload'] for item in json.load(f)]
 except FileNotFoundError:
     FUZZDB_ARSENAL = []
     print("[-] Warning: data/fuzzdb_sqli_arsenal.json not found.")
 
 try:
-    with open('data/errorSignature.json', 'r') as fn:
+    with open(os.path.join(DATA_DIR, 'errorSignature.json'), 'r') as fn:
         ERROR_SIGNATURES = json.load(fn)
 except FileNotFoundError:
     ERROR_SIGNATURES = []
     print("[-] Warning: data/errorSignature.json not found.")
 
-def looks_Real_Endpoint(form):
 
-    action = form['action']
-    if not action:
-        return False
-
-    if action.startswith('javascript:'):
-        return False
-
-    if action.startswith('#'):
-        return False
-
-    return True
-
-def isActionable(params):
-
-    for param in params:
-
-        if param.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
-            return True
-
-    return False
-
-def sqli_scanner(forms):
-
+def filter_candidates(forms):
     candidates = []
     seen_signature = set()
     for form in forms:
-
-        if not looks_Real_Endpoint(form):
+        if not is_real_endpoint(form):
             continue
-
-        if not isActionable(form['inputs']):
+        if not is_actionable(form['inputs']):
             continue
-
 
         signature = f"{form['method']}:{form['action']}"
         if signature in seen_signature:
@@ -70,290 +44,158 @@ def sqli_scanner(forms):
 
     return candidates
 
+
 def prime_dummy(candidate):
-
     safe_data = {}
-
     for cd in candidate['inputs']:
-
         input_name = cd.get('name')
         if not input_name:
             continue
-
-        # if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
-        #     safe_data[input_name] = 'Dummy'
-        if cd.get('name'):
-
-            if cd.get('type') == 'email':
-                safe_data[input_name] = "invalid_user_test@example.com"
-            if cd.get('type') == 'password':
-                safe_data[input_name] = "InvalidPass@123"
-            elif cd.get('type') in ['text', 'search', 'number', 'textarea']:
-                safe_data[input_name] = "invalid_user_test"
-            else:
-                safe_data[input_name] = cd.get('value')
-
+        if cd.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
+            safe_data[input_name] = 'Dummy'
+        else:
+            safe_data[input_name] = cd.get('value')
     return safe_data
 
-def set_baselines(forms):
 
-    candidates = sqli_scanner(forms)
+def set_baselines(forms):
+    candidates = filter_candidates(forms)
 
     for candidate in candidates:
-
-        method = candidate['method']
-
         safe_data = prime_dummy(candidate)
-        action = candidate['action']
+        response = send_request(candidate['action'], candidate['method'], safe_data, active_session)
+        if response is not None:
+            candidate['response_length_baseline'] = len(response.text)
+            candidate['response_code_baseline'] = response.status_code
+            candidate['time_elapsed'] = response.elapsed.total_seconds()
+        else:
+            candidate['response_length_baseline'] = 0
+            candidate['response_code_baseline'] = 0
+            candidate['time_elapsed'] = 0
 
-        if method == 'post':
-
-            response = send_Request(action, 'post', safe_data, active_session)
-            if response is not None:
-                candidate['response_length_baseline'] = len(response.text)
-                candidate['response_code_baseline'] = response.status_code
-                candidate['time_elapsed'] = response.elapsed.total_seconds()
-                candidate['baseline_endpoint'] = response.url
-                
-                durations = []
-                for _ in range(3):
-                    start = time.perf_counter()
-                    response = send_Request(action, 'post', safe_data, active_session)
-                    duration = time.perf_counter() - start
-                    durations.append(duration)
-            
-                candidate['server_delay_baseline'] = np.std(durations)
-                candidate['time_mean'] = np.mean(durations)
-                candidate['jitter'] = max(0.05, candidate['server_delay_baseline']*3)
-
-            else:
-                candidate['response_length_baseline'] = 0
-                candidate['response_code_baseline'] = 0
-                candidate['time_elapsed'] = 0
-                candidate['server_delay_baseline'] = 0
-                candidate['time_mean'] = 0
-                candidate['jitter'] = 0
-                candidate['baseline_endpoint'] = ''
-            
-            
-        elif method == 'get':
-
-            response = send_Request(action, 'get', safe_data, active_session)
-
-            if response is not None:
-                candidate['response_length_baseline'] = len(response.text)
-                candidate['response_code_baseline'] = response.status_code
-                candidate['time_elapsed'] = response.elapsed.total_seconds()
-                candidate['baseline_endpoint'] = response.url
-                
-                durations = []
-                for _ in range(3):
-                    start = time.perf_counter()
-                    response = send_Request(action, 'get', safe_data, active_session)
-                    duration = time.perf_counter() - start
-                    durations.append(duration)
-            
-                candidate['server_delay_baseline'] = np.std(durations)
-                candidate['time_mean'] = np.mean(durations)
-                candidate['jitter'] = max(0.05, np.std(durations) * 3)
-                
-            else:
-                candidate['response_length_baseline'] = 0
-                candidate['response_code_baseline'] = 0
-                candidate['time_elapsed'] = 0
-                candidate['server_delay_baseline'] = 0
-                candidate['time_mean'] = 0
-                candidate['jitter'] = 0
-                candidate['baseline_endpoint'] = ''
-                
     return candidates
 
 
-def prepare_Input_Data(candidate, load):
-
-    data = {}
-    for cd in candidate['inputs']:
-
-        input_name = cd.get('name')
-        if not input_name:
-            continue
-
-        text_types = ['text', 'password', 'email', 'search', 'number', 'textarea']
-
-        if cd.get('type') in text_types:
-            data[input_name] = load
-        else:
-            data[input_name] = cd.get('value')
-
-    return data
-
-def send_Request(action, method, data, session= None):
-
-    try:
-        caller = session if session else requests
-        if method == 'post':
-            return caller.post(action, data=data)
-        return caller.get(action, params=data)
-    except requests.exceptions.Timeout:
-        print(f"[-] Request to {action} timed out.")
-        return None
-    except requests.exceptions.RequestException:
-        print(f"[-] Unexpected error occurred while sending request to {action}")
-        return None
-    except Exception as e:
-        print(f"[-] Request to {action} failed: {e}")
-        return None
-
-def check_Auth_Bypass(candidate):
-
+def check_auth_bypass(candidate):
     arsenal = PAYLOADS_DB.get('auth_bypass', [])
     findings = []
 
-    if(candidate['baseline_endpoint'] == ''):
-        return findings
-
     for load in arsenal:
-
         print(f"  [>] Testing payload auth")
 
-        data = prepare_Input_Data(candidate, load)
-        response = send_Request(candidate['action'] , candidate['method'], data, active_session)
-        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
+        data = prepare_input_data(candidate, load)
+        response = send_request(candidate['action'], candidate['method'], data, active_session)
 
         if response is None:
             continue
-        
-        length = abs(len(response.text) - candidate['response_length_baseline'])
-        change = length > (candidate['response_length_baseline']*0.1)
-        
-        success_keywords = ["logout", "sign off", "my account", "welcome"]
-        found_success = any(word in response.text.lower() for word in success_keywords)
 
-        curr_endpoint = response.url
-        baseline_endpoint = candidate.get('baseline_endpoint')
+        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
 
-        if response.status_code == 200 and (change or found_success) and (curr_endpoint != baseline_endpoint):
+        if response.status_code == 200 and len(response.text) > candidate['response_length_baseline']:
             finding = {
-                'url' : candidate['found on'],
-                'vulnerability type': 'Auth Bypass SQLI',
+                'url': candidate['found_on'],
+                'vulnerability_type': 'Auth Bypass SQLI',
                 'payload': load,
                 'severity': 'Critical',
                 'evidence': f"Auth bypass successful on {candidate.get('action', 'target')} using payload: {load}"
             }
-
             findings.append(finding)
             break
 
-        elif response.status_code == 500:
+        if response.status_code == 500:
             finding = {
-                'url' : candidate['found on'],
-                'vulnerability type': 'SQL Syntax Error',
+                'url': candidate['found_on'],
+                'vulnerability_type': 'Auth Bypass SQLI',
                 'payload': load,
                 'severity': 'Critical',
-                'evidence': f"Potential server crash(500) on {candidate.get('action', 'target')} using payload: {load}",
+                'evidence': f"Auth bypass successful on {candidate.get('action', 'target')} using payload: {load}",
                 'status': response.status_code
             }
-
             findings.append(finding)
             break
+
     return findings
 
-def check_Error_Based(candidate):
 
+def check_error_based(candidate):
     arsenal = FUZZDB_ARSENAL
     findings = []
+    reported_urls = set()
 
     for load in arsenal:
-
         print(f"  [>] Testing payload error")
 
-        data = prepare_Input_Data(candidate, load)
-        response = send_Request(candidate['action'] , candidate['method'], data, active_session)
-        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
+        data = prepare_input_data(candidate, load)
+        response = send_request(candidate['action'], candidate['method'], data, active_session)
 
         if response is None:
             continue
 
-        if any(error.lower() in response.text.lower() for error in ERROR_SIGNATURES) or (response.status_code == 500):
-            finding = {
-                    'url' : candidate['found on'],
-                    'vulnerability type': 'Error Based SQLI',
+        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
+
+        if any(error.lower() in response.text.lower() for error in ERROR_SIGNATURES):
+            if candidate['found_on'] not in reported_urls:
+                reported_urls.add(candidate['found_on'])
+                finding = {
+                    'url': candidate['found_on'],
+                    'vulnerability_type': 'Error Based SQLI',
                     'payload': load,
                     'severity': 'Critical',
-                    'evidence': f"Server error by {candidate['found on']}",
+                    'evidence': f"Server error by {candidate['found_on']}",
                     'status': response.status_code
-            }
-            findings.append(finding)
-            break
-
-    return findings
-
-def check_time_Based(candidate, count=0):
-    
-    arsenal = PAYLOADS_DB.get('time_based', [])
-    findings = []
-
-    for load in arsenal:
-        print(f"  [>] Testing payload time")
-        
-        start_clock = time.perf_counter()
-
-        data = prepare_Input_Data(candidate, load['payload'])
-        response = send_Request(candidate['action'] , candidate['method'], data, active_session)
-        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
-        
-        
-        duration = time.perf_counter() - start_clock
-
-        if response is None:
-            continue
-
-        threshold = candidate['time_mean'] + candidate['jitter'] + load.get('delay', 5) - 1.0
-        if duration >= threshold:
-            
-            original_delay = load.get('delay', 5)
-            verification_delay = original_delay + 2
-            
-            v_payload = load['payload'].replace(f"{original_delay}", f"{verification_delay}")
-            v_data = prepare_Input_Data(candidate, v_payload)
-            
-            start_clock = time.perf_counter()
-            response1 = send_Request(candidate['action'] , candidate['method'], v_data, active_session)
-            duration1 = time.perf_counter() - start_clock
-            v_threshold = candidate['time_mean'] + candidate['jitter'] + verification_delay - 1.0
-            
-            if duration1 >= v_threshold:
-            
-                finding = {
-                    'url' : candidate['found on'],
-                    'vulnerability type': 'Time Based SQLI',
-                    'payload': load['payload'],
-                    'severity': 'Critical',
-                    'evidence': f"Primary delay: {duration:.2f}s, Verification delay: {duration1:.2f}s on {candidate.get('action', 'target')} using payload: {load['payload']}"
                 }
                 findings.append(finding)
                 break
 
     return findings
 
-def test_single_candidate(candidate):
 
+def check_time_based(candidate):
+    arsenal = PAYLOADS_DB.get('time_based', [])
+    findings = []
+
+    for load in arsenal:
+        print(f"  [>] Testing payload time")
+
+        data = prepare_input_data(candidate, load['payload'])
+        response = send_request(candidate['action'], candidate['method'], data, active_session)
+
+        if response is None:
+            continue
+
+        print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
+        duration = response.elapsed.total_seconds()
+
+        threshold = candidate['time_elapsed'] + 2.0 + load['delay']
+        if duration >= threshold:
+            finding = {
+                'url': candidate['found_on'],
+                'vulnerability_type': 'Time Based SQLI',
+                'payload': load['payload'],
+                'severity': 'Critical',
+                'evidence': f"Server delayed by {duration}s"
+            }
+            findings.append(finding)
+
+    return findings
+
+
+def test_single_candidate(candidate):
     results = []
-    results.extend(check_Auth_Bypass(candidate))
-    results.extend(check_Error_Based(candidate))
-    results.extend(check_time_Based(candidate, 0))
+    results.extend(check_auth_bypass(candidate))
+    results.extend(check_error_based(candidate))
+    results.extend(check_time_based(candidate))
     return results
 
+
 def injector(forms, session):
-    
-    global active_session 
+    global active_session
     active_session = session
     candidates = set_baselines(forms)
-    
 
     vulnerable_pages = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=ScanConfig.THREAD_WORKERS) as executor:
         future_to_vuln = {executor.submit(test_single_candidate, c): c for c in candidates}
 
         for future in concurrent.futures.as_completed(future_to_vuln):

