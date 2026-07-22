@@ -27,11 +27,18 @@
     "SQLite/JDBCDriver",
     "SQLite.Exception",
     "System.Data.SQLite.SQLiteException",
-    "Warning.*sqlite_.*"
+    "Warning.*sqlite_.*",
+    "unrecognized token",
+    "no such column",
+    "no such table",
+    "near \".*\": syntax error"
   ],
   "Generic": [
     "SQL syntax error",
     "Syntax error in SQL statement",
-    "Unclosed quotation mark after the character string"
+    "Unclosed quotation mark after the character string",
+    "unrecognized",
+    "syntax error",
+    "OperationalError"
   ]
 }

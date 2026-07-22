@@ -1,8 +1,6 @@
-import json, os, concurrent.futures
+import json, os, concurrent.futures, re, time
 from .utils import is_real_endpoint, is_actionable, prepare_input_data, send_request, DATA_DIR
 from config import ScanConfig
-
-active_session = None
 
 try:
     with open(os.path.join(DATA_DIR, 'payloads.json'), 'r') as f:
@@ -20,9 +18,13 @@ except FileNotFoundError:
 
 try:
     with open(os.path.join(DATA_DIR, 'errorSignature.json'), 'r') as fn:
-        ERROR_SIGNATURES = json.load(fn)
+        raw = json.load(fn)
+        ERROR_PATTERNS = []
+        for pattern_list in raw.values():
+            for pattern in pattern_list:
+                ERROR_PATTERNS.append(re.compile(pattern, re.IGNORECASE))
 except FileNotFoundError:
-    ERROR_SIGNATURES = []
+    ERROR_PATTERNS = []
     print("[-] Warning: data/errorSignature.json not found.")
 
 
@@ -58,12 +60,12 @@ def prime_dummy(candidate):
     return safe_data
 
 
-def set_baselines(forms):
+def set_baselines(forms, session):
     candidates = filter_candidates(forms)
 
     for candidate in candidates:
         safe_data = prime_dummy(candidate)
-        response = send_request(candidate['action'], candidate['method'], safe_data, active_session)
+        response = send_request(candidate['action'], candidate['method'], safe_data, session)
         if response is not None:
             candidate['response_length_baseline'] = len(response.text)
             candidate['response_code_baseline'] = response.status_code
@@ -76,7 +78,7 @@ def set_baselines(forms):
     return candidates
 
 
-def check_auth_bypass(candidate):
+def check_auth_bypass(candidate, session):
     arsenal = PAYLOADS_DB.get('auth_bypass', [])
     findings = []
 
@@ -84,10 +86,12 @@ def check_auth_bypass(candidate):
         print(f"  [>] Testing payload auth")
 
         data = prepare_input_data(candidate, load)
-        response = send_request(candidate['action'], candidate['method'], data, active_session)
+        response = send_request(candidate['action'], candidate['method'], data, session)
 
         if response is None:
             continue
+
+        time.sleep(ScanConfig.RATE_LIMIT_DELAY)
 
         print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
 
@@ -117,7 +121,7 @@ def check_auth_bypass(candidate):
     return findings
 
 
-def check_error_based(candidate):
+def check_error_based(candidate, session):
     arsenal = FUZZDB_ARSENAL
     findings = []
     reported_urls = set()
@@ -126,14 +130,16 @@ def check_error_based(candidate):
         print(f"  [>] Testing payload error")
 
         data = prepare_input_data(candidate, load)
-        response = send_request(candidate['action'], candidate['method'], data, active_session)
+        response = send_request(candidate['action'], candidate['method'], data, session)
 
         if response is None:
             continue
 
+        time.sleep(ScanConfig.RATE_LIMIT_DELAY)
+
         print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
 
-        if any(error.lower() in response.text.lower() for error in ERROR_SIGNATURES):
+        if any(p.search(response.text) for p in ERROR_PATTERNS):
             if candidate['found_on'] not in reported_urls:
                 reported_urls.add(candidate['found_on'])
                 finding = {
@@ -150,7 +156,7 @@ def check_error_based(candidate):
     return findings
 
 
-def check_time_based(candidate):
+def check_time_based(candidate, session):
     arsenal = PAYLOADS_DB.get('time_based', [])
     findings = []
 
@@ -158,10 +164,12 @@ def check_time_based(candidate):
         print(f"  [>] Testing payload time")
 
         data = prepare_input_data(candidate, load['payload'])
-        response = send_request(candidate['action'], candidate['method'], data, active_session)
+        response = send_request(candidate['action'], candidate['method'], data, session)
 
         if response is None:
             continue
+
+        time.sleep(ScanConfig.RATE_LIMIT_DELAY)
 
         print(f"[DEBUG] URL: {response.url} | Status: {response.status_code}")
         duration = response.elapsed.total_seconds()
@@ -180,23 +188,21 @@ def check_time_based(candidate):
     return findings
 
 
-def test_single_candidate(candidate):
+def test_single_candidate(candidate, session):
     results = []
-    results.extend(check_auth_bypass(candidate))
-    results.extend(check_error_based(candidate))
-    results.extend(check_time_based(candidate))
+    results.extend(check_auth_bypass(candidate, session))
+    results.extend(check_error_based(candidate, session))
+    results.extend(check_time_based(candidate, session))
     return results
 
 
 def injector(forms, session):
-    global active_session
-    active_session = session
-    candidates = set_baselines(forms)
+    candidates = set_baselines(forms, session)
 
     vulnerable_pages = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=ScanConfig.THREAD_WORKERS) as executor:
-        future_to_vuln = {executor.submit(test_single_candidate, c): c for c in candidates}
+        future_to_vuln = {executor.submit(test_single_candidate, c, session): c for c in candidates}
 
         for future in concurrent.futures.as_completed(future_to_vuln):
             try:

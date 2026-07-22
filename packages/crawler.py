@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import lxml
 from urllib.parse import urljoin, urlparse
+import time
 from config import ScanConfig
 
 
@@ -115,6 +116,8 @@ def crawl(start_url, session, max_depth=None):
             if any(kw in redirected_to for kw in ScanConfig.SESSION_EXPIRY_KEYWORDS):
                 print(f"[!] Warning: Possible session expiry — redirected to {page.url}")
                 continue
+
+        time.sleep(ScanConfig.RATE_LIMIT_DELAY)
 
         cleaned_html = page.content.decode('utf-8', errors='replace')
         soup = BeautifulSoup(cleaned_html, 'lxml')

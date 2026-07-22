@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crucible Test Lab</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: #1a1a2e; color: #fff; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 1.25rem; }
+    header span { font-size: 0.75rem; opacity: 0.6; font-family: monospace; }
+    nav { background: #16213e; padding: 0.75rem 2rem; display: flex; gap: 1.5rem; }
+    nav a { color: #a8d8ea; text-decoration: none; font-size: 0.875rem; padding: 0.25rem 0.5rem; border-radius: 4px; transition: background 0.2s; }
+    nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    main { flex: 1; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: #fff; border-radius: 8px; padding: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+    .card p { font-size: 0.875rem; color: #666; margin-bottom: 1rem; }
+    .badge { display: inline-block; font-size: 0.7rem; font-family: monospace; padding: 0.2rem 0.5rem; border-radius: 4px; margin-right: 0.5rem; }
+    .badge.sqli { background: #ffebee; color: #c62828; }
+    .badge.xss { background: #fff3e0; color: #e65100; }
+    .badge.time { background: #e8f5e9; color: #2e7d32; }
+    footer { text-align: center; padding: 1rem; font-size: 0.75rem; color: #999; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>&#9889; Crucible Test Lab</h1>
+    <span>vulnerable-by-design</span>
+  </header>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/login">Login</a>
+    <a href="/search">Search</a>
+    <a href="/products">Products</a>
+    <a href="/product?id=1">Product Detail</a>
+  </nav>
+  <main>
+    <div class="card">
+      <h2>Welcome to the Test Lab</h2>
+      <p>This application is intentionally vulnerable. Use it to test Crucible's scanning capabilities.</p>
+      <p>Available attack surfaces:</p>
+      <ul style="list-style:none;display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;">
+        <li><span class="badge sqli">SQLi Auth Bypass</span> &mdash; <code>/login</code></li>
+        <li><span class="badge xss">Reflected XSS</span> &mdash; <code>/search?q=</code></li>
+        <li><span class="badge sqli">Error-based SQLi</span> &mdash; <code>/search?q=</code> &amp; <code>/products?category=</code></li>
+        <li><span class="badge time">Time-based SQLi</span> &mdash; <code>/product?id=</code></li>
+      </ul>
+    </div>
+  </main>
+  <footer>Crucible Test Lab &mdash; do not deploy in production</footer>
+</body>
+</html>

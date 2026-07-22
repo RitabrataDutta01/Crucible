@@ -11,11 +11,10 @@ class ScanConfig:
     FOLLOW_ROBOTS_TXT = True
     SESSION_EXPIRY_KEYWORDS = ["login", "signin", "session expired", "unauthorized", "auth"]
 
-    @staticmethod
-    def from_env():
-        config = ScanConfig()
-        config.TIMEOUT = int(os.getenv("CRUCIBLE_TIMEOUT", str(config.TIMEOUT)))
-        config.CRAWL_MAX_DEPTH = int(os.getenv("CRUCIBLE_CRAWL_DEPTH", str(config.CRAWL_MAX_DEPTH)))
-        config.RATE_LIMIT_DELAY = float(os.getenv("CRUCIBLE_RATE_LIMIT", str(config.RATE_LIMIT_DELAY)))
-        config.THREAD_WORKERS = int(os.getenv("CRUCIBLE_WORKERS", str(config.THREAD_WORKERS)))
-        return config
+    @classmethod
+    def from_env(cls):
+        cls.TIMEOUT = int(os.getenv("CRUCIBLE_TIMEOUT", str(cls.TIMEOUT)))
+        cls.CRAWL_MAX_DEPTH = int(os.getenv("CRUCIBLE_CRAWL_DEPTH", str(cls.CRAWL_MAX_DEPTH)))
+        cls.RATE_LIMIT_DELAY = float(os.getenv("CRUCIBLE_RATE_LIMIT", str(cls.RATE_LIMIT_DELAY)))
+        cls.THREAD_WORKERS = int(os.getenv("CRUCIBLE_WORKERS", str(cls.THREAD_WORKERS)))
+        return cls

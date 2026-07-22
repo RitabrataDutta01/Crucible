@@ -1,8 +1,7 @@
-import json, os, concurrent.futures
+import json, os, concurrent.futures, time
 from .utils import is_real_endpoint, is_actionable, prepare_input_data, send_request, DATA_DIR
 from config import ScanConfig
 
-session = None
 probe = """crucible'"><;"""
 
 try:
@@ -13,7 +12,7 @@ except FileNotFoundError:
     print("[-] Warning: data/XSS.json not found.")
 
 
-def check_reflected_xss(candidate):
+def check_reflected_xss(candidate, active_session):
     breaker = candidate.get('breaker', '')
     arsenal = XSS_ARSENAL
     findings = []
@@ -24,10 +23,18 @@ def check_reflected_xss(candidate):
         print(f"  [>] Testing payload: {mutated_load[:20]}.....")
 
         data = prepare_input_data(candidate, mutated_load)
-        response = send_request(candidate['action'], candidate['method'], data, session)
+        response = send_request(candidate['action'], candidate['method'], data, active_session)
+        
+        if response is None:
+            return None
 
-        if response is not None:
-            if mutated_load in response.text:
+        time.sleep(ScanConfig.RATE_LIMIT_DELAY)
+
+        ct = response.headers.get('Content-Type', '')
+        if 'text/html' not in ct and 'application/xhtml+xml' not in ct:
+            return None
+
+        if mutated_load in response.text:
                 findings.append({
                     'vulnerability_type': 'Reflected XSS',
                     'context': candidate.get('type', 'Unknown'),
@@ -43,16 +50,13 @@ def check_reflected_xss(candidate):
 
 
 def injector(forms, active_session):
-    global session
-    session = active_session
-
     candidates = [f for f in forms if is_real_endpoint(f) and is_actionable(f['inputs'])]
 
     vulnerable_pages = []
     exploitable = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=ScanConfig.THREAD_WORKERS) as executor:
-        probe_futures = {executor.submit(check_reflection, c): c for c in candidates}
+        probe_futures = {executor.submit(check_reflection, c, active_session): c for c in candidates}
 
         for future in concurrent.futures.as_completed(probe_futures):
             try:
@@ -63,7 +67,7 @@ def injector(forms, active_session):
                 print(f"[-] Scouting Error: {e}")
 
         if exploitable:
-            attacks = {executor.submit(check_reflected_xss, t): t for t in exploitable}
+            attacks = {executor.submit(check_reflected_xss, t, active_session): t for t in exploitable}
 
             for future in concurrent.futures.as_completed(attacks):
                 try:
@@ -76,25 +80,29 @@ def injector(forms, active_session):
     return vulnerable_pages
 
 
-def check_reflection(candidate):
-    global probe
+def check_reflection(candidate, active_session):
     load = probe
-    findings = []
 
     data = prepare_input_data(candidate, load)
-    response = send_request(candidate['action'], candidate['method'], data, session)
-
+    response = send_request(candidate['action'], candidate['method'], data, active_session)
+    
     if response is None:
+        return None
+
+    time.sleep(ScanConfig.RATE_LIMIT_DELAY)
+
+    ct = response.headers.get('Content-Type','')
+    if 'text/html' not in ct and 'application/xhtml+xml' not in ct:
         return None
 
     txt = response.text
 
     if load in txt:
-        occurence_index = txt.find(load)
-        start_snippet = max(0, occurence_index - 15)
-        preceeding_part = txt[start_snippet:occurence_index]
+        occurrence_index = txt.find(load)
+        start_snippet = max(0, occurrence_index - 15)
+        preceding_part = txt[start_snippet:occurrence_index]
 
-        rp = txt[occurence_index:occurence_index + len(load)]
+        rp = txt[occurrence_index:occurrence_index + len(load)]
 
         survival = {
             "lt_raw": "<" in rp,
@@ -108,23 +116,27 @@ def check_reflection(candidate):
 
         strategy = {"vulnerable": False, "type": "Unknown", "breaker": ""}
 
-        if preceeding_part.strip().endswith('>'):
+        if preceding_part.strip().endswith('>'):
             strategy["type"] = "HTML"
             if survival["lt_raw"] and survival["gt_raw"]:
                 strategy['breaker'] = ""
                 strategy['vulnerable'] = True
 
-        elif '=' in preceeding_part or '="' in preceeding_part:
+        elif '=' in preceding_part or '="' in preceding_part:
             strategy["type"] = "Attribute"
             if survival["quot_raw"] and survival["gt_raw"]:
                 strategy["vulnerable"] = True
                 strategy["breaker"] = '">'
 
-        elif "var" in preceeding_part or "script" in preceeding_part.lower():
+        elif "var" in preceding_part or "script" in preceding_part.lower():
             strategy["type"] = "Javascript"
             if survival["apos_raw"] and survival["semi_raw"]:
                 strategy["vulnerable"] = True
                 strategy["breaker"] = "';"
+        else:
+            strategy["type"] = "TextContent"
+            if survival["lt_raw"] and survival["gt_raw"]:
+                strategy["vulnerable"] = True
 
         candidate.update(strategy)
         return candidate

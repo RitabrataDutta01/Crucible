@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Lab &mdash; Login</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+    header { background: #1a1a2e; color: #fff; padding: 1rem 2rem; }
+    header a { color: #a8d8ea; text-decoration: none; font-size: 0.8rem; }
+    main { flex: 1; max-width: 400px; margin: 3rem auto; padding: 0 1rem; }
+    .card { background: #fff; border-radius: 8px; padding: 2rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .card h2 { margin-bottom: 1.5rem; font-size: 1rem; }
+    label { display: block; font-size: 0.8rem; margin-bottom: 0.25rem; color: #666; }
+    input[type=text], input[type=password] { width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
+    button { width: 100%; padding: 0.6rem; background: #1a1a2e; color: #fff; border: none; border-radius: 4px; font-size: 0.9rem; cursor: pointer; }
+    button:hover { background: #16213e; }
+    .msg { margin-top: 1rem; padding: 0.6rem; border-radius: 4px; font-size: 0.8rem; }
+    .msg.ok { background: #e8f5e9; color: #2e7d32; }
+    .msg.err { background: #ffebee; color: #c62828; }
+    .hint { font-size: 0.75rem; color: #999; margin-top: 1rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/">&larr; Back to Home</a>
+  </header>
+  <main>
+    <div class="card">
+      <h2>Login</h2>
+      <form method="POST">
+        <label for="username">Username</label>
+        <input type="text" name="username" id="username" placeholder="admin" autocomplete="off">
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" placeholder="********">
+        <button type="submit">Sign In</button>
+      </form>
+      {% if message %}
+      <div class="msg ok">{{ message }}</div>
+      {% endif %}
+      {% if error %}
+      <div class="msg err">{{ error }}</div>
+      {% endif %}
+      <p class="hint">Hint: try <code>' OR 1=1--</code></p>
+    </div>
+  </main>
+</body>
+</html>
