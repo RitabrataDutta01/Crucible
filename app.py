@@ -20,11 +20,10 @@ def get_reports():
 
 @app.route('/')
 def index():
-    return render_template("index.html", results = None)
+    return render_template("index.html", results=None)
 
 @app.route('/deep_scan', methods=['POST'])
 def scan():
-
     target_url = request.form.get('target_url')
     auth_cookies = request.form.get('auth_cookies', '')
 
@@ -41,8 +40,7 @@ def scan():
     xss_findings = XSS.injector(all_forms, scan_session)
     total_findings = sqli_findings + xss_findings
 
-    report_filename = f"scan_report_latest.json"
-
+    report_filename = "scan_report_latest.json"
     filepath = os.path.join(REPORT_DIR, report_filename)
 
     with open(filepath, 'w') as f:
@@ -81,6 +79,7 @@ def get_ai_analysis():
         print(f"DEBUG ERROR: {e}")
         return jsonify({"analysis": f"API ERROR: {str(e)}"})
 
+
 @app.route('/view_report/<filename>')
 def view_report(filename):
     filepath = os.path.join(REPORT_DIR, filename)
@@ -89,6 +88,7 @@ def view_report(filename):
     with open(filepath, 'r') as f:
         data = json.load(f)
     return render_template('index.html', results=data, target=filename)
+
 
 @app.route('/download/<filename>')
 def download_report(filename):
@@ -103,13 +103,13 @@ def download_report(filename):
     except Exception as e:
         print(f"Cleanup Error: {e}")
 
-        # 3. Send the RAM copy to the browser
     return send_file(
         io.BytesIO(file_data),
         mimetype='application/json',
         as_attachment=True,
         download_name=filename
     )
+
 
 if __name__ == '__main__':
     app.run(debug=True)
