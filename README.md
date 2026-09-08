@@ -171,10 +171,10 @@ python app.py
 - [ ] Unify finding schemas across `sqli.py` and `XSS.py` into one reporting format
 - [ ] Fix path loading (currently environment-dependent)
 - [ ] Remove dead code from earlier iterations
-- [ ] Bundle a sandboxed live demo (DVWA / OWASP Juice Shop via docker-compose) — never expose the scanner against a public target
+- [ ] Bundle a sandboxed live demo (DVWA / OWASP Juice Shop via docker-compose)
 - [ ] Tag `v1.0` release
 
-> LFI and RCE modules exist as early proofs of concept and are being developed separately before integration — intentionally out of scope for this repo for now.
+
 
 ## Disclaimer
 
